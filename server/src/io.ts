@@ -5,7 +5,7 @@ import { Server, type ServerOptions } from "socket.io";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from "../../shared/socketTypes.ts";
+} from "../../shared/socketTypes.mts";
 
 // Extend Fastify's TypeScript types
 declare module "fastify" {

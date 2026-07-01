@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { discordSdk } from "@/discord";
 import DiscordAvatar from "./components/DiscordAvatar.vue";
 import type { Socket } from "socket.io-client";
-import type { ClientToServerEvents, ServerToClientEvents } from "@shared/socketTypes.ts";
+import type { ClientToServerEvents, ServerToClientEvents } from "@shared/socketTypes.mts";
 
 const { socket } = defineProps<{ socket: Socket<ServerToClientEvents, ClientToServerEvents> }>();
 
