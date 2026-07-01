@@ -1,4 +1,5 @@
 import type { FastifyInstance, RouteShorthandOptions } from "fastify";
+import { fetchAndRetry } from "../../../shared/utils.mjs";
 
 interface Body {
   code: string;
@@ -28,18 +29,21 @@ export default async function routes(
       },
     },
     async function (request, reply) {
-      const response = await fetch("https://discord.com/api/oauth2/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+      const response = await fetchAndRetry(
+        "https://discord.com/api/oauth2/token",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            client_id: process.env.VITE_DISCORD_CLIENT_ID!,
+            client_secret: process.env.DISCORD_CLIENT_SECRET!,
+            grant_type: "authorization_code",
+            code: request.body.code,
+          }),
         },
-        body: new URLSearchParams({
-          client_id: process.env.VITE_DISCORD_CLIENT_ID!,
-          client_secret: process.env.DISCORD_CLIENT_SECRET!,
-          grant_type: "authorization_code",
-          code: request.body.code,
-        }),
-      });
+      );
 
       if (!response.ok) {
         reply.code(500).send();
