@@ -1,16 +1,27 @@
 // CREDIT :: from https://github.com/ducktors/fastify-socket.io/issues/180#issuecomment-3426353709
 
 import fastifyPlugin from "fastify-plugin";
-import { Server, type ServerOptions } from "socket.io";
+import { Server, type DefaultEventsMap, type ServerOptions } from "socket.io";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from "../../shared/socketTypes.mts";
+} from "../../shared/socketTypes.mjs";
+import type { APIUser } from "discord-api-types/v10";
+
+export interface SocketData {
+  discord: APIUser;
+  instanceId: string;
+}
 
 // Extend Fastify's TypeScript types
 declare module "fastify" {
   interface FastifyInstance {
-    socketIO: Server<ClientToServerEvents, ServerToClientEvents>;
+    socketIO: Server<
+      ClientToServerEvents,
+      ServerToClientEvents,
+      DefaultEventsMap,
+      SocketData
+    >;
   }
 }
 

@@ -5,7 +5,7 @@ console.log("!!! SDK loading");
 
 export const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
-let auth: Awaited<ReturnType<typeof discordSdk.commands.authenticate>>;
+export let auth: Awaited<ReturnType<typeof discordSdk.commands.authenticate>>;
 export const api = new REST({ version: "10" });
 export async function setupDiscordSdk() {
   if (auth != null) return;
