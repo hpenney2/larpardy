@@ -3,15 +3,16 @@ import { onMounted, ref } from "vue";
 import { discordSdk } from "@/discord";
 import DiscordAvatar from "./components/DiscordAvatar.vue";
 import type { Socket } from "socket.io-client";
-import type { ClientToServerEvents, ServerToClientEvents } from "@shared/socketTypes.mts";
+import type { ClientToServerEvents, ServerToClientEvents } from "@shared/socketTypes.mjs";
+import { PROJ_NAME } from "./shared.ts";
 
 const { socket } = defineProps<{ socket: Socket<ServerToClientEvents, ClientToServerEvents> }>();
 
 const users =
-  ref<Awaited<ReturnType<typeof discordSdk.commands.getActivityInstanceConnectedParticipants>>>();
+  ref<Awaited<ReturnType<typeof discordSdk.commands.getInstanceConnectedParticipants>>>();
 
 onMounted(async () => {
-  users.value = await discordSdk.commands.getActivityInstanceConnectedParticipants();
+  users.value = await discordSdk.commands.getInstanceConnectedParticipants();
 });
 
 discordSdk.subscribe("ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE", (newUsers) => {
@@ -20,20 +21,17 @@ discordSdk.subscribe("ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE", (newUsers) => {
 </script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
-  <img
-    src="https://1521015095738499083.discordsays.com/tenor/MvPZleT_pWcAAAAd/tenor.gif"
-    width="50%"
-    alt=""
-  />
-  <div v-for="user in users?.participants" :key="user.id">
-    <p>{{ user.global_name }} ({{ user.username }})</p>
-    <DiscordAvatar :user="user"></DiscordAvatar>
-  </div>
+  <main>
+    <h1>{{ PROJ_NAME }}</h1>
+    <div v-for="user in users?.participants" :key="user.id">
+      <p>{{ user.global_name }} ({{ user.username }})</p>
+      <DiscordAvatar :user="user"></DiscordAvatar>
+    </div>
+  </main>
 </template>
 
-<style scoped></style>
+<style scoped>
+main {
+  text-align: center;
+}
+</style>

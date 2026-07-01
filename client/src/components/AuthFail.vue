@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed } from "vue";
 
 const { err } = defineProps<{ err: unknown }>();
 const isServerProblem = computed(() => err instanceof Error && err.cause instanceof Response);
-
-onMounted(() => {});
 </script>
 
 <template>
