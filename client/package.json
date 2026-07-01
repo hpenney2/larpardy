@@ -1,5 +1,5 @@
 {
-  "name": "leopardy",
+  "name": "larpardy",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,10 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
-    "vue": "^3.5.38"
+    "@discord/embedded-app-sdk": "^2.5.0",
+    "vue": "^3.5.38",
+    "@discordjs/rest": "^2.6.1",
+    "discord-api-types": "^0.38.49"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

@@ -1,6 +1,20 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import "./main.css";
 
-const app = createApp(App)
+import { createApp } from "vue";
+import App from "./App.vue";
+import AuthFail from "./components/AuthFail.vue";
+import { setupPromise } from "./discord.ts";
 
-app.mount('#app')
+async function main() {
+  try {
+    await setupPromise;
+
+    const app = createApp(App);
+    app.mount("#app");
+  } catch (err) {
+    console.error("error during auth!", JSON.stringify(err));
+    createApp(AuthFail, { err: err }).mount("#app");
+  }
+}
+
+main();
