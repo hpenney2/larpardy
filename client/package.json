@@ -1,5 +1,5 @@
 {
-  "name": "larpardy",
+  "name": "@larpardy/client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,8 @@
     "@discordjs/rest": "^2.6.1",
     "discord-api-types": "^0.38.49",
     "socket.io-client": "^4.8.3",
-    "vue": "^3.5.38"
+    "vue": "^3.5.38",
+    "@larpardy/shared": "workspace:*"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

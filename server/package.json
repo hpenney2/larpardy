@@ -1,16 +1,16 @@
 {
-  "name": "larpardy-server",
+  "name": "@larpardy/server",
   "version": "0.1.0",
   "description": "",
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "src/main.ts",
+  "main": "dist/main.js",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "start": "tsx src/main.ts",
-    "dev": "tsx watch src/main.ts"
+    "build": "tsc --build",
+    "start": "node dist/main.js",
+    "dev": "tsx watch --clear-screen=false src/main.ts"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",
@@ -24,6 +24,7 @@
     "fastify": "^5.9.0",
     "fastify-plugin": "^6.0.0",
     "socket.io": "^4.8.3",
-    "tsx": "^4.22.4"
+    "tsx": "^4.22.4",
+    "@larpardy/shared": "workspace:*"
   }
 }

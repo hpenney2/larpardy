@@ -5,7 +5,7 @@ import { Server, type DefaultEventsMap, type ServerOptions } from "socket.io";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from "../../shared/socketTypes.mjs";
+} from "@larpardy/shared/socketTypes";
 import type { APIUser } from "discord-api-types/v10";
 
 export interface SocketData {

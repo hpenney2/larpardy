@@ -1,5 +1,5 @@
 import type { FastifyInstance, RouteShorthandOptions } from "fastify";
-import { fetchAndRetry } from "../../../shared/utils.mjs";
+import { fetchAndRetry } from "@larpardy/shared/utils";
 
 interface Body {
   code: string;
