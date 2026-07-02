@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "run-s build:shared",
     "build": "run-p type-check \"build-only {@}\" --",
+    "build:shared": "pnpm --filter @larpardy/shared run build",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
