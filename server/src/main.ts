@@ -67,7 +67,7 @@ fastify.socketIO.use(async (socket, next) => {
 
 fastify.register(fastifyAutoload, { dir: join(__dirname, "plugins") });
 
-fastify.listen({ port: 3001 }, function (err, address) {
+fastify.listen({ port: 3001, host: "0.0.0.0" }, function (err, address) {
   if (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -4,3 +4,6 @@ packages:
   - "shared"
 allowBuilds:
   esbuild: true
+syncInjectedDepsAfterScripts:
+  - build
+injectWorkspacePackages: true
