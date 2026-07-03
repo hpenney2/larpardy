@@ -10,15 +10,3 @@ services:
     ports:
       - "3001:3001"
     restart: unless-stopped
-
-  client-host:
-    profiles:
-      - prod
-    depends_on:
-      - server
-    build:
-      context: .
-      target: client
-    ports:
-      - "8080:80"
-    restart: unless-stopped

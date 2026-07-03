@@ -10,6 +10,8 @@ import {
   type APIActivityInstance,
   type APIUser,
 } from "discord-api-types/v10";
+import fastifyStatic from "@fastify/static";
+import path from "node:path";
 
 dotenv.config({ path: "../.env" });
 
@@ -63,6 +65,10 @@ fastify.socketIO.use(async (socket, next) => {
     console.log("connect error:", err);
     next(new Error(`Failed to verify your session.`));
   }
+});
+
+fastify.register(fastifyStatic, {
+  root: path.join(__dirname, "..", "public"), // if we're in production, the client files should exist in ./public/ (running from ./dist/, so ../public)
 });
 
 fastify.register(fastifyAutoload, { dir: join(__dirname, "plugins") });

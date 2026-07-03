@@ -24,18 +24,10 @@ COPY --from=build /usr/src/app/pnpm-lock.yaml /usr/src/app/pnpm-workspace.yaml /
 
 COPY --from=build /usr/src/app/server /prod/server/server
 COPY --from=build /usr/src/app/shared /prod/server/shared
+COPY --from=build /usr/src/app/client/dist /prod/server/server/public
 WORKDIR /prod/server/server
 
 RUN pnpm prune --prod
 
 EXPOSE 3001
 CMD ["pnpm", "start"]
-
-# FROM base AS vitedev
-# COPY --from=build /prod/client /prod/client
-
-# EXPOSE 5173
-# CMD ["pnpm", "run", "dev"]
-
-FROM nginx:alpine AS client
-COPY --from=build /prod/client/dist /usr/share/nginx/html
