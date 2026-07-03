@@ -36,12 +36,12 @@ fastify.socketIO.use(async (socket, next) => {
 
   try {
     let rest = new REST({ version: "10" }).setToken(
-      process.env.DISCORD_BOT_TOKEN!,
+      process.env.DISCORD_BOT_TOKEN,
     );
 
     let instance = (await rest.get(
       Routes.applicationActivityInstance(
-        process.env.VITE_DISCORD_CLIENT_ID!,
+        process.env.VITE_DISCORD_CLIENT_ID,
         instanceId,
       ),
     )) as APIActivityInstance;
