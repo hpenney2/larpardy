@@ -12,6 +12,8 @@ import {
 } from "discord-api-types/v10";
 import fastifyStatic from "@fastify/static";
 import path from "node:path";
+import fastifyRedis from "@fastify/redis";
+import statePlugin from "./StateManager.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -19,6 +21,25 @@ const fastify = Fastify({ logger: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const EXPECTED_ENV = [
+  "VITE_DISCORD_CLIENT_ID",
+  "DISCORD_CLIENT_SECRET",
+  "DISCORD_BOT_TOKEN",
+  "REDIS_URL",
+];
+
+const _MISSING_ENV = EXPECTED_ENV.filter((val) => !(val in process.env));
+if (_MISSING_ENV.length > 0) {
+  console.error(
+    "[!] Missing env variables. Make sure these are set in `.env`.",
+    _MISSING_ENV.join(", "),
+  );
+  process.exit(1);
+}
+
+fastify.register(fastifyRedis, { url: process.env.REDIS_URL });
+fastify.register(statePlugin);
 
 // awaiting because otherwise the instance won't be ready
 // before attaching middleware

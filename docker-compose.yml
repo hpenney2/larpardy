@@ -4,9 +4,29 @@ services:
   server:
     profiles:
       - prod
+    depends_on:
+      - redis
     build:
       context: .
       target: server
+    env_file:
+      - ".env"
+    environment:
+      - REDIS_URL=redis://redis
     ports:
       - "3001:3001"
     restart: unless-stopped
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    environment:
+      - REDIS_ARGS=--requirepass "${REDIS_PASS:?error}" --appendonly yes --save 900 1 --save 300 10 --save 60 1000
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local

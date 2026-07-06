@@ -1,5 +1,9 @@
-export interface ServerToClientEvents {}
+import { GameState } from "./state";
+
+export interface ServerToClientEvents {
+  stateUpdate: (state: GameState) => void;
+}
 
 export interface ClientToServerEvents {
-  ready: (instanceId: string) => void;
+  ready: () => void;
 }
