@@ -27,13 +27,15 @@ export default async function routes(
     });
 
     let isReady = false;
+    let isReadying = false;
     socket.on("ready", async () => {
+      if (isReadying) return;
       if (isReady) {
         console.log(`${id} sent ready again? resending current state`);
         await sendCurrentState();
         return;
       }
-      isReady = true;
+      isReadying = true;
 
       console.log("readying client", id);
 
@@ -71,6 +73,9 @@ export default async function routes(
       await socket.join(instance);
       console.log(socket.rooms);
       stateUpdated(state);
+
+      isReady = true;
+      isReadying = false;
     });
 
     // kick out clients that don't fully connect in 1 minute
