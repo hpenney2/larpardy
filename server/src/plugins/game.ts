@@ -49,9 +49,23 @@ export default async function routes(
         return;
       }
 
-      socket.on("disconnecting", async () => {
-        await fastify.state.leavePlayer(instance, id);
-        await sendCurrentState();
+      socket.on("disconnecting", () => {
+        console.log("disconnecting...", id);
+
+        const clients = io.sockets.adapter.rooms.get(instance);
+
+        // we're the last client!
+        if (clients && clients.size === 1) {
+          console.log(`cleaning up room for ${instance}`);
+          fastify.state.dropInstance(instance);
+        } else {
+          // these are async but we don't need to wait for them
+          // (and actually doing that would be a bad idea;
+          // this callback NEEDS to be sync or we get seemingly
+          // undefined behavior with clients.size?)
+          fastify.state.leavePlayer(instance, id);
+          sendCurrentState();
+        }
       });
 
       await socket.join(instance);

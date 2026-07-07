@@ -85,7 +85,7 @@ export class StageManager {
     }
   }
 
-  private async dropInstance(instance: string) {
+  async dropInstance(instance: string) {
     const prefix = rkey(KeyTypes.GAME, instance) + "*";
     let [cursor, keys] = await this.redis.scan(
       0,
@@ -98,10 +98,18 @@ export class StageManager {
     // this should NEVER happen with such a large count, but... can't be too sure?
     // proper implementation is probably a good idea lol
     while (cursor !== "0") {
-      const [newCursor, newKeys] = await this.redis.scan(cursor);
+      const [newCursor, newKeys] = await this.redis.scan(
+        cursor,
+        "MATCH",
+        prefix,
+        "COUNT",
+        1000,
+      );
       cursor = newCursor;
       keys = keys.concat(newKeys);
     }
+
+    console.log("[state] unlinking", keys);
 
     return this.redis.unlink(keys);
   }
