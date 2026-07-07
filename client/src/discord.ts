@@ -18,7 +18,7 @@ export async function setupDiscordSdk() {
     response_type: "code",
     state: "",
     prompt: "none",
-    scope: ["identify", "guilds", "guilds.members.read"],
+    scope: ["identify", "guilds", "guilds.members.read", "rpc.activities.write", "rpc.voice.read"],
   });
 
   const response = await fetch("/api/token", {

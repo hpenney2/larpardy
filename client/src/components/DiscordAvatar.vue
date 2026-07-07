@@ -8,22 +8,44 @@ defineProps<{
     id: string;
   };
   size?: ImageSize;
+  speaking?: boolean;
 }>();
 </script>
 
 <template>
-  <img
-    :src="
-      user.avatar
-        ? api.cdn.avatar(user.id, user.avatar, { size: size ?? 64 })
-        : api.cdn.defaultAvatar(Number((BigInt(user.id) >> 22n) % 6n))
-    "
-    class="avatar"
-  />
+  <div class="avatarContainer" :class="{ speaking }">
+    <img
+      :src="
+        user.avatar
+          ? api.cdn.avatar(user.id, user.avatar, { size: size ?? 64 })
+          : api.cdn.defaultAvatar(Number((BigInt(user.id) >> 22n) % 6n))
+      "
+      class="avatar"
+    />
+  </div>
 </template>
 
 <style scoped>
-.avatar {
+/* .avatar {
+  width: 100%;
+  height: 100%;
+} */
+
+.avatarContainer {
   border-radius: 50%;
+  line-height: 0;
+  width: min-content;
+  position: relative;
+  overflow: clip;
+}
+
+.speaking::after {
+  /* box-shadow: 0 0 0 0px var(--status-speaking), inset 0 0 0 2px var(--status-speaking), inset 0 0 0 3px var(--background-base-lower); */
+  box-shadow: inset 0 0 0 3px var(--user-speaking);
+  content: "";
+  inset: 0;
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
 }
 </style>

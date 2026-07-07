@@ -1,3 +1,20 @@
+:root {
+  --user-speaking: rgb(61, 158, 96);
+}
+
 body {
   font-family: "Courier New", Courier, monospace;
+}
+
+@keyframes wait {
+  0%,
+  100% {
+    content: "\00B7";
+  }
+  33% {
+    content: "\00B7\00B7";
+  }
+  66% {
+    content: "\00B7\00B7\00B7";
+  }
 }
