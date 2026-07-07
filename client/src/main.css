@@ -1,9 +1,15 @@
 :root {
+  --color-bg: #192a51;
+  --color-primary: #d5c6e0;
+  --color-accent: #aaa1c8;
+  --color-accent2: #f5e6e8;
   --user-speaking: rgb(61, 158, 96);
 }
 
 body {
   font-family: "Courier New", Courier, monospace;
+  background-color: var(--color-bg);
+  color: white;
 }
 
 @keyframes wait {
