@@ -18,13 +18,21 @@ export default async function routes(
       io.to(instance).emit("stateUpdate", state);
     }
 
+    async function sendCurrentState() {
+      stateUpdated(await fastify.state.getState(instance));
+    }
+
     socket.on("disconnect", () => {
       console.log("user disconnected :(", id);
     });
 
     let isReady = false;
     socket.on("ready", async () => {
-      if (isReady) return;
+      if (isReady) {
+        console.log(`${id} sent ready again? resending current state`);
+        await sendCurrentState();
+        return;
+      }
       isReady = true;
 
       console.log("readying client", id);
@@ -43,7 +51,7 @@ export default async function routes(
 
       socket.on("disconnecting", async () => {
         await fastify.state.leavePlayer(instance, id);
-        stateUpdated(await fastify.state.getState(instance));
+        await sendCurrentState();
       });
 
       await socket.join(instance);
