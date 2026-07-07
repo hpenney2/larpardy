@@ -11,28 +11,33 @@ function mountError(err: unknown) {
 }
 
 async function main() {
+  let socket;
   try {
     await setupPromise;
 
-    const socket = io(undefined, {
+    socket = io(undefined, {
       path: "/api/connect",
       auth: { instanceId: discordSdk.instanceId, token: discordAuth.access_token },
     });
 
     socket.on("connect_error", (err) => {
-      console.log("connect error :(");
-      console.log(err.message, err.cause);
+      console.log("connect error :(", err.message, err.cause);
 
       app.unmount();
       mountError(err);
     });
 
-    const app = createApp(App, { socket });
-    app.mount("#app");
+    socket.onAny((event, value) => {
+      console.debug(`[socket.io] heard ${event}`, value);
+    });
   } catch (err) {
     console.error("error during auth!", JSON.stringify(err));
     mountError(err);
+    return;
   }
+
+  const app = createApp(App, { socket });
+  app.mount("#app");
 }
 
 main();
