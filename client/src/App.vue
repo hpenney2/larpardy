@@ -56,6 +56,10 @@ discordSdk.commands.setActivity({
 });
 
 socket.emit("ready");
+// if we reconnect, let server know we are ready in case it doesn't know
+socket.on("connect", () => {
+  socket.emit("ready");
+});
 </script>
 
 <template>
