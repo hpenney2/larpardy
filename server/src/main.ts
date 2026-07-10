@@ -47,6 +47,8 @@ await fastify.register(fastifySocketIO, {
   connectionStateRecovery: {},
   path: "/api/connect",
   serveClient: false,
+  pingInterval: 5000,
+  pingTimeout: 15000,
 });
 
 // Socket.IO middleware

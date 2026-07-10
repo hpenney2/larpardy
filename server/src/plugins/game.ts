@@ -22,8 +22,8 @@ export default async function routes(
       stateUpdated(await fastify.state.getState(instance));
     }
 
-    socket.on("disconnect", () => {
-      console.log("user disconnected :(", id);
+    socket.on("disconnect", (reason) => {
+      console.log("user disconnected :(", id, reason);
     });
 
     let isReady = false;
