@@ -59,8 +59,7 @@ export class StageManager {
     const success = await this.redis
       .multi()
       .watch(key, players) // should players be in this list?
-      .hsetnx(key, "host", hostId)
-      .hsetnx(key, "state", StateType.Lobby)
+      .hsetex(key, "FNX", "FIELDS", 2, "host", hostId, "state", StateType.Lobby)
       .sadd(players, hostId)
       .exec();
 
