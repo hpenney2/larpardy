@@ -17,9 +17,10 @@ const users =
 const usersTalking = ref(new Set<string>());
 
 const gameState = ref<GameState>();
-socket.on("stateUpdate", (newState) => {
+socket.on("stateUpdate", (newState, callback) => {
   gameState.value = newState;
   console.log("[new state]", newState);
+  callback();
 });
 
 onMounted(async () => {

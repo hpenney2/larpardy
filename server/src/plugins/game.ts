@@ -1,11 +1,22 @@
 import type { GameState } from "@larpardy/shared/state";
 import type { FastifyInstance } from "fastify";
 
+// time to wait for state update ack in milliseconds
+const STATE_UPDATE_TIMEOUT = 5000;
+const STATE_UPDATE_RETRIES = 3;
+
 export default async function routes(
   fastify: FastifyInstance,
   options: Object,
 ) {
   const io = fastify.socketIO;
+
+  async function socketFromId(user: string) {
+    return (await io.fetchSockets())
+      .filter((sock) => sock.data.discord.id === user)
+      .map((sock) => sock.id)
+      .pop();
+  }
 
   io.on("connection", async (socket) => {
     console.log("user connected!", socket.id, socket.data.discord);
@@ -14,12 +25,28 @@ export default async function routes(
     const instance = socket.data.instanceId;
 
     /** send updated state to clients */
-    function stateUpdated(state: GameState) {
-      io.to(instance).emit("stateUpdate", state);
+    function stateUpdated(
+      state: GameState,
+      retries: number = STATE_UPDATE_RETRIES,
+    ) {
+      io.timeout(STATE_UPDATE_TIMEOUT)
+        .to(instance)
+        .emit("stateUpdate", state, (err) => {
+          if (err) {
+            console.warn("ack error updating state (timeout):", err);
+            if (retries > 1) {
+              sendCurrentState(retries - 1); // in case the state we had is stale now
+            } else {
+              console.warn(
+                `[!] all state update retries expended on instance ${instance}. unresponsive client?`,
+              );
+            }
+          }
+        });
     }
 
-    async function sendCurrentState() {
-      stateUpdated(await fastify.state.getState(instance));
+    async function sendCurrentState(retries: number = STATE_UPDATE_RETRIES) {
+      stateUpdated(await fastify.state.getState(instance), retries);
     }
 
     socket.on("disconnect", (reason) => {
@@ -84,5 +111,10 @@ export default async function routes(
         socket.disconnect();
       }
     }, 60000);
+
+    // clients will send "ready" when they reconnect. this can cause a race condition instead
+    // if (!socket.recovered) {
+    //   await sendCurrentState();
+    // }
   });
 }
