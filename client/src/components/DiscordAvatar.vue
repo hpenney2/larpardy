@@ -21,15 +21,17 @@ defineProps<{
           : api.cdn.defaultAvatar(Number((BigInt(user.id) >> 22n) % 6n))
       "
       class="avatar"
+      draggable="false"
     />
   </div>
 </template>
 
 <style scoped>
-/* .avatar {
-  width: 100%;
-  height: 100%;
-} */
+.avatar {
+  -webkit-user-drag: none;
+  /* width: 100%;
+  height: 100%; */
+}
 
 .avatarContainer {
   border-radius: 50%;
