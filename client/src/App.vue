@@ -23,6 +23,8 @@ socket.on("stateUpdate", (newState, callback) => {
   callback();
 });
 
+const socketConnected = ref(false);
+
 onMounted(async () => {
   users.value = await discordSdk.commands.getInstanceConnectedParticipants();
 });
@@ -58,15 +60,20 @@ discordSdk.commands.setActivity({
 
 // if we reconnect, let server know we are ready in case it doesn't know
 socket.on("connect", () => {
+socketConnected.value = socket.connected;
   socket.emit("ready");
 });
+socket.on("disconnect", () => {
+  socketConnected.value = socket.connected;
+});
+
 if (gameState.value === undefined) {
   socket.emit("ready");
 }
 </script>
 
 <template>
-  <WaitModal v-if="gameState === undefined"></WaitModal>
+  <WaitModal v-if="gameState === undefined || !socketConnected"></WaitModal>
 
   <main v-if="gameState !== undefined">
     <h1>{{ PROJ_NAME }}</h1>

@@ -20,11 +20,13 @@ async function main() {
       auth: { instanceId: discordSdk.instanceId, token: discordAuth.access_token },
     });
 
+    // should we move this to App and just show the WaitModal so it's not so permenant?
+    // but what if it IS a permenant error??
     socket.on("connect_error", (err) => {
       console.log("connect error :(", err.message, err.cause);
 
-      app.unmount();
-      mountError(err);
+      // app.unmount();
+      // mountError(err);
     });
 
     socket.onAny((event, value) => {
