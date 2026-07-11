@@ -46,6 +46,8 @@ export class StageManager {
       throw new Error(`game "${instance}" does not exist`);
     }
 
+    game.state = parseInt(game.state as unknown as string);
+
     // players are stored seperately
     const players = await this.getPlayers(instance);
 
