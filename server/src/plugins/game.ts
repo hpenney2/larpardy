@@ -92,8 +92,9 @@ export default async function routes(
           // (and actually doing that would be a bad idea;
           // this callback NEEDS to be sync or we get seemingly
           // undefined behavior with clients.size?)
-          fastify.state.leavePlayer(instance, id);
-          sendCurrentState();
+          fastify.state
+            .leavePlayer(instance, id)
+            .then(() => sendCurrentState());
         }
       });
 
