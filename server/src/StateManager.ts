@@ -8,11 +8,19 @@ import fastifyPlugin from "fastify-plugin";
 const enum KeyTypes {
   GAME = "game",
   PLAYERS = "players",
+  READYPLAYERS = "readyPlayers",
 }
 
 /** r(edis) key */
 function rkey(...args: string[]): string {
   return args.join(":");
+}
+
+/** g(ame) key
+ * (shortcut for rkey({@link KeyTypes.GAME}, ...))
+ */
+function gkey(...args: string[]) {
+  return rkey(KeyTypes.GAME, ...args);
 }
 
 export class StageManager {
@@ -22,22 +30,79 @@ export class StageManager {
     return this.redis.smembers(rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS));
   }
 
-  joinPlayer(instance: string, userId: string) {
+  async joinPlayer(instance: string, userId: string) {
     return this.redis.sadd(
       rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS),
       userId,
     );
   }
 
-  leavePlayer(instance: string, userId: string) {
+  async leavePlayer(instance: string, userId: string) {
+    return this.redis
+      .multi()
+      .srem(rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS), userId)
+      .srem(rkey(KeyTypes.GAME, instance, KeyTypes.READYPLAYERS), userId)
+      .exec();
+  }
+
+  /** Returns whether or not all players are ready.
+   * @param [autoClear=true] Clears the list of readied players when the final player is ready.
+   */
+  async readyForNext(
+    instance: string,
+    userId: string,
+    autoClear: boolean = true,
+  ): Promise<boolean> {
+    const key = rkey(KeyTypes.GAME, instance, KeyTypes.READYPLAYERS);
+    const players = rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS);
+    const _readiedDiff = (await this.redis
+      .multi()
+      .sadd(key, userId)
+      .sdiff(key, players)
+      .exec())![1]?.[1] as string[]; // no WATCH; cannot be null
+
+    // const readied = new Set(_readied);
+    // const players = new Set(await this.getPlayers(instance));
+
+    // const result = readied.size === players.size && players.isSubsetOf(readied);
+    const result = _readiedDiff.length === 0;
+    if (result && autoClear) {
+      await this.redis.unlink(key);
+    }
+
+    return result;
+  }
+
+  async getReadyForNext(instance: string) {
+    return this.redis.smembers(
+      rkey(KeyTypes.GAME, instance, KeyTypes.READYPLAYERS),
+    );
+  }
+
+  async unreadyForNext(instance: string, userId: string) {
     return this.redis.srem(
-      rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS),
+      rkey(KeyTypes.GAME, instance, KeyTypes.READYPLAYERS),
       userId,
     );
   }
 
+  async getHostPlayer(instance: string) {
+    return this.redis.hget(gkey(instance), "host") as Promise<string>; // trust me bro :3
+  }
+
+  async getStateType(instance: string): Promise<StateType> {
+    return parseInt((await this.redis.hget(gkey(instance), "state"))!);
+  }
+
+  async setStateType(instance: string, state: StateType) {
+    return this.redis.hset(gkey(instance), "state", state);
+  }
+
+  async startGame(instance: string) {
+    return this.redis.hset(gkey(instance), "state", StateType.GameStartIntro);
+  }
+
   async getState(instance: string): Promise<GameState> {
-    const key = KeyTypes.GAME + instance;
     const game: Partial<GameState> = await this.redis.hgetall(
       rkey(KeyTypes.GAME, instance),
     );
@@ -50,8 +115,20 @@ export class StageManager {
 
     // players are stored seperately
     const players = await this.getPlayers(instance);
+    const readyPlayers = await this.getReadyForNext(instance);
 
-    return { ...(game as GameState), players };
+    const playerSet = new Set(players);
+    const readyPlayerSet = new Set(readyPlayers);
+    const isReadyForNext =
+      readyPlayerSet.size === playerSet.size &&
+      playerSet.isSubsetOf(readyPlayerSet);
+
+    return {
+      ...(game as GameState),
+      players,
+      readyForNextState: readyPlayers,
+      isReadyForNext,
+    };
   }
 
   async initGame(instance: string, hostId: string) {
@@ -65,6 +142,7 @@ export class StageManager {
       .sadd(players, hostId)
       .exec();
 
+    // TODO: should this error out instead?
     if (success === null) {
       console.warn(
         `[!] Init of game failed, somewhere else might be trying to do it at the same time! (redis returned null; ${key}). Assuming that it must already exist.`,

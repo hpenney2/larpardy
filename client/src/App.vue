@@ -1,29 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { discordSdk } from "@/discord";
-import DiscordAvatar from "./components/DiscordAvatar.vue";
-import type { Socket } from "socket.io-client";
-import type { ClientToServerEvents, ServerToClientEvents } from "@larpardy/shared/socketTypes";
-import { PROJ_NAME } from "./shared.ts";
+import { type DiscordUsers } from "./shared.ts";
 import { ActivityType } from "discord-api-types/v10";
-import type { GameState } from "@larpardy/shared/state";
+import { StateType } from "@larpardy/shared/state";
 import WaitModal from "./components/WaitModal.vue";
+import LobbyScreen from "./components/LobbyScreen.vue";
+import { socket, gameState } from "@/socket.ts";
+import GameBoard from "./components/GameBoard.vue";
 
-const { socket } = defineProps<{ socket: Socket<ServerToClientEvents, ClientToServerEvents> }>();
+const devMode = import.meta.env.DEV;
 
-const users =
-  ref<Awaited<ReturnType<typeof discordSdk.commands.getInstanceConnectedParticipants>>>();
-
+const users = ref<DiscordUsers>();
 const usersTalking = ref(new Set<string>());
-
-const gameState = ref<GameState>();
-socket.on("stateUpdate", (newState, callback) => {
-  gameState.value = newState;
-  console.log("[new state]", newState);
-  callback();
-});
-
-const socketConnected = ref(false);
 
 onMounted(async () => {
   users.value = await discordSdk.commands.getInstanceConnectedParticipants();
@@ -60,58 +49,57 @@ discordSdk.commands.setActivity({
 
 // if we reconnect, let server know we are ready in case it doesn't know
 socket.on("connect", () => {
-socketConnected.value = socket.connected;
   socket.emit("ready");
 });
-socket.on("disconnect", () => {
-  socketConnected.value = socket.connected;
-});
 
-if (gameState.value === undefined) {
+if (gameState.state == null) {
   socket.emit("ready");
 }
 </script>
 
 <template>
-  <WaitModal v-if="gameState === undefined || !socketConnected"></WaitModal>
+  <template v-if="gameState.state != null && gameState.connected">
+    <Transition name="mainScreens">
+      <main v-if="gameState.state.state == StateType.Lobby">
+        <LobbyScreen :users="users" :users-talking="usersTalking"></LobbyScreen>
+      </main>
+      <main v-else>
+        <GameBoard></GameBoard>
+      </main>
+    </Transition>
+  </template>
 
-  <main v-if="gameState !== undefined">
-    <h1>{{ PROJ_NAME }}</h1>
-    <div v-for="user in users?.participants" :key="user.id">
-      <p>{{ user.global_name }} ({{ user.username }})</p>
-      <DiscordAvatar
-        :user="user"
-        :speaking="usersTalking.has(user.id)"
-        :size="64"
-        class="avatar"
-        :class="{ loading: !gameState?.players.includes(user.id) }"
-      ></DiscordAvatar>
-    </div>
-  </main>
+  <WaitModal v-if="gameState.state == null || !gameState.connected"></WaitModal>
+  <p id="debug" v-if="devMode">debug: {{ gameState }}</p>
 </template>
 
 <style scoped>
 main {
-  text-align: center;
-}
-
-main * {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.avatar.loading::after {
-  content: "...";
-  display: block;
-  align-content: center;
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  text-align: center;
-  backdrop-filter: brightness(50%);
+}
 
-  animation: wait 2s linear infinite;
+.mainScreens-enter-active,
+.mainScreens-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.mainScreens-enter-from,
+.mainScreens-leave-to {
+  opacity: 0;
+}
+
+#debug {
+  position: fixed;
+  top: 0;
+  left: 0;
+  max-width: 100vw;
+  opacity: 0.5;
+  user-select: none;
+}
+
+#debug:hover {
+  opacity: 0;
 }
 </style>

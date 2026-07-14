@@ -9,11 +9,12 @@ defineProps<{
   };
   size?: ImageSize;
   speaking?: boolean;
+  loading?: boolean;
 }>();
 </script>
 
 <template>
-  <div class="avatarContainer" :class="{ speaking }">
+  <div class="avatarContainer" :class="{ speaking, loading }">
     <img
       :src="
         user.avatar
@@ -38,6 +39,7 @@ defineProps<{
   line-height: 0;
   width: min-content;
   position: relative;
+  display: inline-block;
   overflow: clip;
 }
 
@@ -49,5 +51,20 @@ defineProps<{
   position: absolute;
   pointer-events: none;
   border-radius: inherit;
+}
+
+.loading::after {
+  content: "...";
+  display: block;
+  align-content: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  backdrop-filter: brightness(50%);
+
+  animation: wait 2s linear infinite;
 }
 </style>

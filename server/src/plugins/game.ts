@@ -1,9 +1,11 @@
-import type { GameState } from "@larpardy/shared/state";
+import { StateType, type GameState } from "@larpardy/shared/state";
 import type { FastifyInstance } from "fastify";
 
 // time to wait for state update ack in milliseconds
 const STATE_UPDATE_TIMEOUT = 5000;
 const STATE_UPDATE_RETRIES = 3;
+
+const READY_NOCLEAR_STATES = new Set<StateType>([StateType.Lobby]);
 
 export default async function routes(
   fastify: FastifyInstance,
@@ -51,6 +53,10 @@ export default async function routes(
 
     socket.on("disconnect", (reason) => {
       console.log("user disconnected :(", id, reason);
+    });
+
+    socket.onAny((event, ...value) => {
+      console.debug(`[socket ${id}] >> ${event}`, value);
     });
 
     let isReady = false;
@@ -104,6 +110,43 @@ export default async function routes(
 
       isReady = true;
       isReadying = false;
+    });
+
+    socket.on("readyForNext", async (current) => {
+      if (current === (await fastify.state.getStateType(instance))) {
+        await fastify.state.readyForNext(
+          instance,
+          id,
+          !READY_NOCLEAR_STATES.has(current),
+        );
+        await sendCurrentState();
+      }
+    });
+
+    socket.on("unreadyForNext", async () => {
+      if (
+        READY_NOCLEAR_STATES.has(
+          (await fastify.state.getStateType(instance)) as StateType,
+        )
+      ) {
+        await fastify.state.unreadyForNext(instance, id);
+        await sendCurrentState();
+      }
+    });
+
+    socket.on("startGame", async () => {
+      console.log("start req!");
+      const state = await fastify.state.getState(instance);
+      console.log(
+        `start req by ${id}.`,
+        state,
+        state.host === id,
+        state.isReadyForNext,
+      );
+      if (state.host === id && state.isReadyForNext) {
+        await fastify.state.startGame(instance);
+        await sendCurrentState();
+      }
     });
 
     // kick out clients that don't fully connect in 1 minute
