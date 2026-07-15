@@ -1,5 +1,7 @@
+import { DiscordAPIError, REST } from "@discordjs/rest";
 import type { FastifyRedis } from "@fastify/redis";
 import { StateType, type GameState } from "@larpardy/shared/state";
+import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
 
 // we could theoretically add a redis: Redis = this.redis parameter to CRUD methods, but generic types become a problem lol
@@ -164,23 +166,20 @@ export class StageManager {
     }
   }
 
-  async dropInstance(instance: string) {
-    const prefix = rkey(KeyTypes.GAME, instance) + "*";
+  protected async scan(match: string) {
     let [cursor, keys] = await this.redis.scan(
       0,
       "MATCH",
-      prefix,
+      match,
       "COUNT",
       1000,
     );
 
-    // this should NEVER happen with such a large count, but... can't be too sure?
-    // proper implementation is probably a good idea lol
     while (cursor !== "0") {
       const [newCursor, newKeys] = await this.redis.scan(
         cursor,
         "MATCH",
-        prefix,
+        match,
         "COUNT",
         1000,
       );
@@ -188,11 +187,72 @@ export class StageManager {
       keys = keys.concat(newKeys);
     }
 
+    return keys;
+  }
+
+  async dropInstance(instance: string) {
+    const prefix = rkey(KeyTypes.GAME, instance) + "*";
+    let keys = await this.scan(prefix);
+
     console.log("[state] unlinking", keys);
 
     return this.redis.unlink(keys);
   }
+
+  async dropStaleKeys() {
+    const keys = await this.scan(KeyTypes.GAME + ":*");
+
+    let rest = new REST({ version: "10" }).setToken(
+      process.env.DISCORD_BOT_TOKEN,
+    );
+    rest.options.rejectOnRateLimit;
+
+    const timeStart = performance.now();
+
+    const stale: string[] = [];
+    await Promise.all(
+      keys.map(async (key) => {
+        const instanceId = key.split(":")[1];
+        if (instanceId == null) {
+          console.warn(
+            `[stalechk] couldn't get instance ID from key ${key}? it will be kept`,
+          );
+          return;
+        }
+
+        try {
+          await rest.get(
+            Routes.applicationActivityInstance(
+              process.env.VITE_DISCORD_CLIENT_ID,
+              instanceId,
+            ),
+          );
+        } catch (err) {
+          if (err instanceof DiscordAPIError && err.status === 404) {
+            console.log(`[stalechk] ${err} (${instanceId})`);
+            stale.push(key);
+          } else {
+            console.warn(
+              `[stalechk] unknown error for instance ID ${instanceId}: ${err}`,
+            );
+          }
+        }
+      }),
+    );
+
+    const timeEnd = performance.now();
+
+    console.log(
+      `[stalechk] found ${stale.length} out of ${keys.length} keys to be stale (took ${Math.round(timeEnd - timeStart)}ms)`,
+    );
+
+    if (stale.length > 0) {
+      await this.redis.unlink(stale);
+    }
+    console.log(`[stalechk] unlinked ${stale.length} keys`);
+  }
 }
+
 declare module "fastify" {
   interface FastifyInstance {
     state: StageManager;

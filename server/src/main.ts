@@ -38,8 +38,8 @@ if (_MISSING_ENV.length > 0) {
   process.exit(1);
 }
 
-fastify.register(fastifyRedis, { url: process.env.REDIS_URL });
-fastify.register(statePlugin);
+await fastify.register(fastifyRedis, { url: process.env.REDIS_URL });
+await fastify.register(statePlugin);
 
 // awaiting because otherwise the instance won't be ready
 // before attaching middleware
@@ -95,6 +95,12 @@ fastify.register(fastifyStatic, {
 });
 
 fastify.register(fastifyAutoload, { dir: join(__dirname, "plugins") });
+
+// clean up stale keys by checking if their instances still exist.
+// we don't delete keys on shutdown because it might just be a server restart!
+fastify.state
+  .dropStaleKeys()
+  .then(() => console.log("finished checking for stale keys"));
 
 fastify.listen({ port: 3001, host: "0.0.0.0" }, function (err, address) {
   if (err) {
