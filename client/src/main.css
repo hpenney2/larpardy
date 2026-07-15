@@ -1,3 +1,31 @@
+@font-face {
+  font-family: LiberationMono;
+  src: url("./assets/fonts/LiberationMono-Regular.ttf") format("truetype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: LiberationMono;
+  src: url("./assets/fonts/LiberationMono-Italic.ttf") format("truetype");
+  font-display: block;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: LiberationMono;
+  src: url("./assets/fonts/LiberationMono-Bold.ttf") format("truetype");
+  font-display: block;
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: LiberationMono;
+  src: url("./assets/fonts/LiberationMono-BoldItalic.ttf") format("truetype");
+  font-display: block;
+  font-weight: bold;
+  font-style: italic;
+}
+
 :root {
   --color-bg: #192a51;
   --color-primary: #d5c6e0;
@@ -7,10 +35,11 @@
 }
 
 body {
-  font-family: "Courier New", Courier, monospace;
+  font-family: LiberationMono, "Courier New", Courier, monospace;
   background-color: var(--color-bg);
   color: white;
   margin: 0;
+  padding: 0;
 }
 
 @keyframes wait {
