@@ -26,4 +26,5 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: { include: ["@larpardy/shared*"] },
 });
