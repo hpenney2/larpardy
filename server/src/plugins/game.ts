@@ -135,14 +135,7 @@ export default async function routes(
     });
 
     socket.on("startGame", async () => {
-      console.log("start req!");
       const state = await fastify.state.getState(instance);
-      console.log(
-        `start req by ${id}.`,
-        state,
-        state.host === id,
-        state.isReadyForNext,
-      );
       if (state.host === id && state.isReadyForNext) {
         await fastify.state.startGame(instance);
         await sendCurrentState();
