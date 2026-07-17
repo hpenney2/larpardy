@@ -218,8 +218,6 @@ export class StageManager {
     //   x.clues.sort((a, b) => a.value - b.value);
     // });
 
-    console.log(board);
-
     return {
       ...(game as GameState),
       players,
@@ -311,6 +309,16 @@ export class StageManager {
             ...x,
             question: x.question + " INURWALLS1",
             answer: x.answer + " INURWALLS1",
+          };
+        }),
+      },
+      {
+        name: "Cool Test Category Name :3",
+        clues: testClues.map((x) => {
+          return {
+            ...x,
+            question: x.question + " ASDASDAD121212",
+            answer: x.answer + " ASDASDAD12121212",
           };
         }),
       },
