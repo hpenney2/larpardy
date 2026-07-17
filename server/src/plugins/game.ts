@@ -31,6 +31,14 @@ export default async function routes(
       state: GameState,
       retries: number = STATE_UPDATE_RETRIES,
     ) {
+      // strip questions and answers. NO CHEATING >:(
+      state.board.forEach((category) =>
+        category.clues.map((clue) => {
+          clue.question = null;
+          clue.answer = null;
+        }),
+      );
+
       io.timeout(STATE_UPDATE_TIMEOUT)
         .to(instance)
         .emit("stateUpdate", state, (err) => {
@@ -114,11 +122,26 @@ export default async function routes(
 
     socket.on("readyForNext", async (current) => {
       if (current === (await fastify.state.getStateType(instance))) {
-        await fastify.state.readyForNext(
+        const allReady = await fastify.state.readyForNext(
           instance,
           id,
           !READY_NOCLEAR_STATES.has(current),
         );
+
+        if (allReady) {
+          switch (current) {
+            case StateType.GameStartIntro:
+              await fastify.state.setStateType(
+                instance,
+                StateType.GameStartShowCategories,
+              );
+              break;
+            case StateType.GameStartShowCategories:
+              await fastify.state.setStateType(instance, StateType.SelectClue);
+              break;
+          }
+        }
+
         await sendCurrentState();
       }
     });

@@ -16,6 +16,7 @@ const isServerProblem = computed(() => err instanceof Error && err.cause instanc
     <p v-if="isServerProblem">This is likely a temporary issue. Please try again later!</p>
     <button
       type="button"
+      class="button"
       v-if="auth != null"
       @click="
         discordSdk.close(RPCCloseCodes.CLOSE_ABNORMAL, 'Sorry about that. Please restart the game!')

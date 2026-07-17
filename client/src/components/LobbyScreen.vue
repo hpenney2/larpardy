@@ -26,7 +26,7 @@ function startGame() {
 </script>
 <template>
   <TitleHeader></TitleHeader>
-
+  <!-- TODO: add host transfer and settings -->
   <div class="lobbyScreen">
     <h2>Lobby</h2>
     <h3>Waiting to start...</h3>
@@ -49,11 +49,12 @@ function startGame() {
       </div>
     </div>
     <div class="buttons">
-      <button @click="ready">
+      <button type="button" @click="ready" class="button">
         {{ gameState.state?.readyForNextState.includes(discordAuth.user.id) ? "Unready" : "Ready" }}
       </button>
       <button
         id="startButton"
+        class="button"
         :disabled="!gameState.state?.isReadyForNext"
         type="button"
         @click="startGame"

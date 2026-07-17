@@ -31,6 +31,7 @@
   --color-primary: #d5c6e0;
   --color-accent: #aaa1c8;
   --color-accent2: #f5e6e8;
+  --color-accent3: #4444aa;
   --user-speaking: rgb(61, 158, 96);
 }
 
@@ -55,7 +56,7 @@ body {
   }
 }
 
-button {
+.button {
   background-color: #000000aa;
   color: white;
   border: 2px solid white;
@@ -66,11 +67,11 @@ button {
   transition: all 0.1s linear;
 }
 
-button:disabled {
+.button:disabled {
   opacity: 0.5;
 }
 
-button:enabled:hover {
+.button:enabled:hover {
   background-color: rgb(255, 255, 255);
   color: black;
   cursor: pointer;

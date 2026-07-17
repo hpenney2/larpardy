@@ -1,6 +1,10 @@
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import type { FastifyRedis } from "@fastify/redis";
-import { StateType, type GameState } from "@larpardy/shared/state";
+import {
+  StateType,
+  type GameBoard,
+  type GameState,
+} from "@larpardy/shared/state";
 import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
 
@@ -11,6 +15,7 @@ const enum KeyTypes {
   GAME = "game",
   PLAYERS = "players",
   READYPLAYERS = "readyPlayers",
+  BOARD = "board",
 }
 
 /** r(edis) key */
@@ -27,6 +32,54 @@ function gkey(...args: string[]) {
 
 export class StageManager {
   constructor(private redis: FastifyRedis) {}
+
+  protected async scan(match: string) {
+    let [cursor, keys] = await this.redis.scan(
+      0,
+      "MATCH",
+      match,
+      "COUNT",
+      1000,
+    );
+
+    while (cursor !== "0") {
+      const [newCursor, newKeys] = await this.redis.scan(
+        cursor,
+        "MATCH",
+        match,
+        "COUNT",
+        1000,
+      );
+      cursor = newCursor;
+      keys = keys.concat(newKeys);
+    }
+
+    return keys;
+  }
+
+  protected async jsonSet(
+    key: string,
+    path: string,
+    obj: Object,
+    nx: boolean = false,
+    xx: boolean = false,
+  ) {
+    if (nx && xx) {
+      throw new Error("cannot have both NX and XX on JSON.SET");
+    }
+    return this.redis.call(
+      "JSON.SET",
+      key,
+      path,
+      JSON.stringify(obj),
+      ...(nx ? ["NX"] : []),
+      ...(xx ? ["XX"] : []),
+    );
+  }
+
+  protected async jsonGet(key: string, path: string = "$"): Promise<Object> {
+    return JSON.parse((await this.redis.call("JSON.GET", key, path)) as string);
+  }
 
   getPlayers(instance: string): Promise<string[]> {
     return this.redis.smembers(rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS));
@@ -101,7 +154,40 @@ export class StageManager {
   }
 
   async startGame(instance: string) {
-    return this.redis.hset(gkey(instance), "state", StateType.GameStartIntro);
+    return this.redis
+      .multi()
+      .hset(gkey(instance), "state", StateType.GameStartIntro)
+      .exec();
+  }
+
+  async setClueAnswered(
+    instance: string,
+    categoryIndex: number,
+    clueValue: number,
+    answered: boolean = true,
+  ) {
+    return this.jsonSet(
+      gkey(instance, KeyTypes.BOARD),
+      `$[${categoryIndex}].clues[?(@.value == ${clueValue})].answered`,
+      answered,
+    );
+  }
+
+  async getActivePlayer(instance: string) {
+    return this.redis.hget(gkey(instance), "activePlayer");
+  }
+
+  async nextPlayer(instance: string) {
+    const [playersT, activeT] = (await this.redis
+      .multi()
+      .smembers(gkey(instance, KeyTypes.PLAYERS))
+      .hget(gkey(instance), "activePlayer")
+      .exec())!;
+
+    if (playersT && activeT && playersT[0] == null && activeT[0] == null) {
+      const players = playersT[1] as string[];
+      const activePlayer = activeT[1] as string;
+    }
   }
 
   async getState(instance: string): Promise<GameState> {
@@ -115,7 +201,7 @@ export class StageManager {
 
     game.state = parseInt(game.state as unknown as string);
 
-    // players are stored seperately
+    // somes state is stored seperately
     const players = await this.getPlayers(instance);
     const readyPlayers = await this.getReadyForNext(instance);
 
@@ -125,23 +211,117 @@ export class StageManager {
       readyPlayerSet.size === playerSet.size &&
       playerSet.isSubsetOf(readyPlayerSet);
 
+    const board = (
+      (await this.jsonGet(gkey(instance, KeyTypes.BOARD))) as GameBoard[]
+    )[0]!;
+    // board.map((x) => {
+    //   x.clues.sort((a, b) => a.value - b.value);
+    // });
+
+    console.log(board);
+
     return {
       ...(game as GameState),
       players,
       readyForNextState: readyPlayers,
       isReadyForNext,
+      board,
     };
   }
 
   async initGame(instance: string, hostId: string) {
     const key = rkey(KeyTypes.GAME, instance);
     const players = rkey(key, KeyTypes.PLAYERS);
+    const boardKey = rkey(key, KeyTypes.BOARD);
+
+    // TODO: STRICTLY for testing. This should be replaced by an actual random mechanism.
+    const testClues = [
+      {
+        value: 200,
+        question:
+          "This is the world's most revered doctor in the TV show by the same name",
+        answer: "Who is Dr. House?",
+        answered: false,
+      },
+      {
+        value: 400,
+        question: "This is a test",
+        answer: "What is a test question?",
+        answered: false,
+      },
+      {
+        value: 600,
+        question: "That weird little green cyclops from the Pixar movie",
+        answer: "Who is Mike Wazowski?",
+        answered: false,
+      },
+      {
+        value: 800,
+        question: "AAAAAAAAA",
+        answer: "What is screaming?",
+        answered: false,
+      },
+      {
+        value: 1000,
+        question:
+          "This is a REALLLLLYYYYYYYYYYYYY long Q&A. Like, REALLY long. If I had to say, I don't think I've EVER seen a longer question in my entire whole life. Wowwie!",
+        answer: "Pleases stop",
+        answered: false,
+      },
+    ];
+    const board: GameBoard = [
+      {
+        name: "Dr. House",
+        clues: testClues,
+      },
+      {
+        name: "Joe!",
+        clues: testClues.map((x) => {
+          return {
+            ...x,
+            question: x.question + " joe",
+            answer: x.answer + " joe",
+          };
+        }),
+      },
+      {
+        name: "Please send help",
+        clues: testClues.map((x) => {
+          return {
+            ...x,
+            question: x.question + " HELP",
+            answer: x.answer + " HELP",
+          };
+        }),
+      },
+      {
+        name: "Boring Test Category Name 4",
+        clues: testClues.map((x) => {
+          return {
+            ...x,
+            question: x.question + " ASDASDAD",
+            answer: x.answer + " ASDASDAD",
+          };
+        }),
+      },
+      {
+        name: "Don't you know? Haven't you heard? Excuse me, SIR! Uhhh... yeah. Something like that. This is pretty long, isn't it?",
+        clues: testClues.map((x) => {
+          return {
+            ...x,
+            question: x.question + " INURWALLS1",
+            answer: x.answer + " INURWALLS1",
+          };
+        }),
+      },
+    ];
 
     const success = await this.redis
       .multi()
-      .watch(key, players) // should players be in this list?
+      .watch(key, players, boardKey) // should players be in this list?
       .hsetex(key, "FNX", "FIELDS", 2, "host", hostId, "state", StateType.Lobby)
       .sadd(players, hostId)
+      .call("JSON.SET", boardKey, "$", JSON.stringify(board))
       .exec();
 
     // TODO: should this error out instead?
@@ -164,30 +344,6 @@ export class StageManager {
     } else {
       return await this.initGame(instance, userId);
     }
-  }
-
-  protected async scan(match: string) {
-    let [cursor, keys] = await this.redis.scan(
-      0,
-      "MATCH",
-      match,
-      "COUNT",
-      1000,
-    );
-
-    while (cursor !== "0") {
-      const [newCursor, newKeys] = await this.redis.scan(
-        cursor,
-        "MATCH",
-        match,
-        "COUNT",
-        1000,
-      );
-      cursor = newCursor;
-      keys = keys.concat(newKeys);
-    }
-
-    return keys;
   }
 
   async dropInstance(instance: string) {
