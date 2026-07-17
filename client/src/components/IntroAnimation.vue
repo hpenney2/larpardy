@@ -75,12 +75,6 @@ audio.play();
   animation: logoanim 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 300ms;
 }
 
-.intrologo path {
-  fill: white;
-  stroke: black;
-  stroke-width: 20px;
-}
-
 @keyframes logoanim {
   0% {
     translate: -200% 200%;
