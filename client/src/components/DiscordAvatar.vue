@@ -32,6 +32,7 @@ defineProps<{
   -webkit-user-drag: none;
   /* width: 100%;
   height: 100%; */
+  width: 4em;
 }
 
 .avatarContainer {

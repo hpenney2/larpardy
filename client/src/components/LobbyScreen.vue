@@ -83,7 +83,7 @@ function startGame() {
   display: flex;
   flex-wrap: wrap;
   background-color: #000000aa;
-  border: solid 10px black;
+  border: solid 0.6em black;
 
   padding: 1em;
   gap: 2em;

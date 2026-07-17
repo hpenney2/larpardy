@@ -41,10 +41,10 @@ audio.play();
   background-image:
     linear-gradient(to right, var(--color-accent3) 5px, transparent 5px),
     linear-gradient(to bottom, var(--color-accent3) 5px, transparent 5px);
-  background-size: 100px 100px;
+  background-size: 6.75vh 6.75vh;
   /* background-position: 100px 50px; */
 
-  animation: animatedGrid 2s linear infinite;
+  animation: animatedGrid 15s linear infinite;
   transform: perspective(1000px) rotateX(45deg) scale(2);
   transform-origin: center;
 
@@ -54,10 +54,10 @@ audio.play();
 
 @keyframes animatedGrid {
   from {
-    background-position: center 50px;
+    background-position: center 25%;
   }
   to {
-    background-position: center 250px;
+    background-position: center 125%;
   }
 }
 

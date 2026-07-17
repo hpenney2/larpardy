@@ -109,10 +109,13 @@ watchEffect((onCleanup) => {
 }
 
 .category {
+  --10px-vh: 0.67364563545vh;
+  --15px-vh: 1.01046845317vh;
+
   position: relative;
   border: solid black;
-  border-width: 15px 10px;
-  outline: 10px solid black;
+  border-width: var(--15px-vh) var(--10px-vh);
+  outline: var(--10px-vh) solid black;
   align-content: center;
   font-size: 2vh;
 
@@ -148,8 +151,10 @@ watchEffect((onCleanup) => {
 }
 
 .clue {
-  border: 10px solid black;
-  outline: 10px solid black;
+  --10px-vh: 0.67364563545vh;
+
+  border: var(--10px-vh) solid black;
+  outline: var(--10px-vh) solid black;
   align-content: center;
   color: var(--color-primary);
   font-size: 7vh;
