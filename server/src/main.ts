@@ -1,19 +1,25 @@
 import Fastify from "fastify";
 import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import path, { dirname, join } from "node:path";
 import fastifyAutoload from "@fastify/autoload";
 import fastifySocketIO from "./io.js";
-import { REST } from "@discordjs/rest";
-import {
-  Routes,
-  type APIActivityInstance,
-  type APIUser,
-} from "discord-api-types/v10";
 import fastifyStatic from "@fastify/static";
-import path from "node:path";
 import fastifyRedis from "@fastify/redis";
 import statePlugin from "./StateManager.js";
+
+import { REST } from "@discordjs/rest";
+import {
+  ApplicationCommandType,
+  ApplicationIntegrationType,
+  EntryPointCommandHandlerType,
+  InteractionContextType,
+  Routes,
+  type APIActivityInstance,
+  type APIApplicationCommand,
+  type APIUser,
+} from "discord-api-types/v10";
+import { Client, Events } from "discord.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -90,6 +96,83 @@ fastify.socketIO.use(async (socket, next) => {
   }
 });
 
+// configure Discord commands
+const entryPointCommand: Partial<APIApplicationCommand> = {
+  name: "launch",
+  description: "Launch an activity",
+  contexts: [
+    InteractionContextType.Guild,
+    InteractionContextType.BotDM,
+    InteractionContextType.PrivateChannel,
+  ],
+  integration_types: [
+    ApplicationIntegrationType.GuildInstall,
+    ApplicationIntegrationType.UserInstall,
+  ],
+  type: ApplicationCommandType.PrimaryEntryPoint,
+  handler: EntryPointCommandHandlerType.AppHandler,
+};
+async function configDiscordCommands() {
+  const rest = new REST({ version: "10" }).setToken(
+    process.env.DISCORD_BOT_TOKEN,
+  );
+
+  try {
+    const commands = (await rest.get(
+      Routes.applicationCommands(process.env.VITE_DISCORD_CLIENT_ID),
+    )) as APIApplicationCommand[];
+
+    const entryPoint = commands.find(
+      (cmd) => cmd.type === ApplicationCommandType.PrimaryEntryPoint,
+    );
+
+    if (entryPoint != null) {
+      await rest.patch(
+        Routes.applicationCommand(
+          process.env.VITE_DISCORD_CLIENT_ID,
+          entryPoint.id,
+        ),
+        { body: entryPointCommand },
+      );
+      console.log("[discord] updated entry point command");
+    } else {
+      console.log("[discord] no entry point command found; creating a new one");
+      await rest.post(
+        Routes.applicationCommands(process.env.VITE_DISCORD_CLIENT_ID),
+        { body: entryPointCommand },
+      );
+      console.log("[discord] created entry point command");
+    }
+  } catch (err) {
+    console.log("[!] [discord] error updating commands:", err);
+  }
+}
+await configDiscordCommands();
+
+// discord.js client
+declare module "fastify" {
+  interface FastifyInstance {
+    discord: Client;
+  }
+}
+fastify.decorate("discord", new Client({ intents: [] }));
+
+fastify.discord.on(Events.ClientReady, async (client) => {
+  console.log(`[discord] logged in as ${client.user.tag}`);
+});
+fastify.discord.on(Events.InteractionCreate, async (interaction) => {
+  if (!interaction.isPrimaryEntryPointCommand()) return;
+  console.log(
+    `activity launched by ${interaction.user.globalName} (@${interaction.user.username} / ${interaction.user.id} / interaction ID ${interaction.id})`,
+  );
+
+  await interaction.launchActivity();
+  // await interaction.reply({ embeds: [{ type: EmbedType.Link }] });
+});
+
+fastify.discord.login(process.env.DISCORD_BOT_TOKEN);
+
+// Fastify plugins
 fastify.register(fastifyStatic, {
   root: path.join(__dirname, "..", "public"), // if we're in production, the client files should exist in ./public/ (running from ./dist/, so ../public)
 });
