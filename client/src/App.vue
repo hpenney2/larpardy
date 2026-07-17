@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { discordSdk } from "@/discord";
+import { onMounted, ref, watchEffect } from "vue";
+import { auth, discordSdk } from "@/discord";
 import { type DiscordUsers } from "./shared.ts";
 import { ActivityType } from "discord-api-types/v10";
-import { StateType } from "@larpardy/shared/state";
+import { StateType, StateFriendlyNames } from "@larpardy/shared/state";
 import WaitModal from "./components/WaitModal.vue";
 import LobbyScreen from "./components/LobbyScreen.vue";
 import { socket, gameState } from "@/socket.ts";
@@ -38,13 +38,17 @@ discordSdk.subscribe(
   { channel_id: discordSdk.channelId },
 );
 
-discordSdk.commands.setActivity({
-  activity: {
-    type: ActivityType.Playing,
-    // party: { id: "test123!", size: [420, 421] },
-    details: "Who's that?",
-    state: "Hosting",
-  },
+watchEffect(() => {
+  if (gameState.state == null || users.value == null) return;
+
+  discordSdk.commands.setActivity({
+    activity: {
+      type: ActivityType.Playing,
+      party: { size: [users.value.participants.length, 10] },
+      details: StateFriendlyNames[gameState.state.state],
+      state: gameState.state.host === auth.user.id ? "Hosting" : "Playing",
+    },
+  });
 });
 
 // if we reconnect, let server know we are ready in case it doesn't know
