@@ -14,11 +14,6 @@ function mountError(err: unknown) {
 async function main() {
   try {
     await setupPromise;
-    discordSdk.commands.setOrientationLockState({
-      lock_state: Common.OrientationLockStateTypeObject.LANDSCAPE,
-      picture_in_picture_lock_state: Common.OrientationLockStateTypeObject.LANDSCAPE,
-      grid_lock_state: Common.OrientationLockStateTypeObject.LANDSCAPE,
-    });
 
     socket.connect();
   } catch (err) {

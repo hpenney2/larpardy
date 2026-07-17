@@ -3,6 +3,15 @@ import { gameState, socket } from "@/socket";
 import { StateType } from "@larpardy/shared/state";
 import { ref, useTemplateRef, watchEffect } from "vue";
 import IntroAnimation from "./IntroAnimation.vue";
+import { discordSdk } from "@/discord.ts";
+import { Common as SDKCommon } from "@discord/embedded-app-sdk";
+
+// game is started; lock to landscape mode
+discordSdk.commands.setOrientationLockState({
+  lock_state: SDKCommon.OrientationLockStateTypeObject.LANDSCAPE,
+  picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.LANDSCAPE,
+  grid_lock_state: SDKCommon.OrientationLockStateTypeObject.LANDSCAPE,
+});
 
 const board = useTemplateRef("board");
 watchEffect(() => {
