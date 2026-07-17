@@ -3,8 +3,12 @@ import { onUnmounted } from "vue";
 
 const emit = defineEmits(["introDone"]);
 
+const audio = new Audio("/audio/LarpardyIntro.mp3");
+
 const timer = setTimeout(() => emit("introDone"), 7000);
 onUnmounted(() => clearInterval(timer));
+
+audio.play();
 </script>
 
 <template>
