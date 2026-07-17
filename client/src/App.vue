@@ -62,7 +62,7 @@ if (gameState.state == null) {
 </script>
 
 <template>
-  <template v-if="gameState.state != null && gameState.connected">
+  <template v-if="gameState.state != null">
     <Transition name="mainScreens">
       <main v-if="gameState.state.state == StateType.Lobby">
         <LobbyScreen :users="users" :users-talking="usersTalking"></LobbyScreen>
@@ -99,7 +99,7 @@ main {
   top: 0;
   left: 0;
   max-width: 100vw;
-  opacity: 0.5;
+  opacity: 0.25;
   user-select: none;
 }
 
