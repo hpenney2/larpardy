@@ -156,9 +156,20 @@ export class StageManager {
   }
 
   async startGame(instance: string) {
+    const startingPlayer = await this.redis.srandmember(
+      gkey(instance, KeyTypes.PLAYERS),
+    );
+
+    if (!startingPlayer) {
+      throw new Error(
+        `trying to start game, but no players the game? (${instance}`,
+      );
+    }
+
     return this.redis
       .multi()
       .hset(gkey(instance), "state", StateType.GameStartIntro)
+      .hset(gkey(instance), "activePlayer", startingPlayer)
       .exec();
   }
 

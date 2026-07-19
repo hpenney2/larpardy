@@ -6,7 +6,7 @@ import { auth as discordAuth } from "@/discord.ts";
 import { socket, gameState } from "@/socket.ts";
 
 defineProps<{
-  users: DiscordUsers | null | undefined;
+  users?: DiscordUsers;
   usersTalking: Set<string>;
 }>();
 

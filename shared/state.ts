@@ -34,6 +34,6 @@ export interface GameState {
   state: StateType;
 
   board: GameBoard;
-  currentlyAnswering: [number, number]; // [category index, clue *value*]
-  activePlayer: string; // ID of the player selecting the current clue
+  currentlyAnswering: [category: number, clueValue: number] | undefined | null; // [category index, clue *value*]
+  activePlayer: string | undefined | null; // ID of the player selecting the current clue
 }

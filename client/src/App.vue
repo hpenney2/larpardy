@@ -68,7 +68,7 @@ if (gameState.state == null) {
         <LobbyScreen :users="users" :users-talking="usersTalking"></LobbyScreen>
       </main>
       <main v-else>
-        <GameBoard></GameBoard>
+        <GameBoard :users="users" :users-talking="usersTalking"></GameBoard>
       </main>
     </Transition>
   </template>

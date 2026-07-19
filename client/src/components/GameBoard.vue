@@ -3,8 +3,15 @@ import { gameState, socket } from "@/socket";
 import { StateType } from "@larpardy/shared/state";
 import { ref, useTemplateRef, watchEffect } from "vue";
 import IntroAnimation from "./IntroAnimation.vue";
-import { discordSdk } from "@/discord.ts";
+import { auth, discordSdk } from "@/discord.ts";
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
+import PlayerListGame from "./PlayerListGame.vue";
+import type { DiscordUsers } from "@/shared.ts";
+
+defineProps<{
+  users?: DiscordUsers;
+  usersTalking: Set<string>;
+}>();
 
 // game is started; lock to landscape mode
 discordSdk.commands.setOrientationLockState({
@@ -23,6 +30,15 @@ watchEffect(() => {
 
   for (const category of gameState.state?.board) {
     category.clues.sort((a, b) => a.value - b.value);
+  }
+});
+
+// play sound effect when it's time to select a clue again
+const playerUpAudio = new Audio("/audio/playerUp.mp3");
+watchEffect(() => {
+  if (gameState.state?.state === StateType.SelectClue) {
+    playerUpAudio.currentTime = 0;
+    playerUpAudio.play();
   }
 });
 
@@ -52,7 +68,7 @@ watchEffect((onCleanup) => {
 </script>
 
 <template>
-  <div id="board" ref="board">
+  <div id="board" ref="board" :class="{ ourTurn: gameState.state?.activePlayer === auth.user.id }">
     <div
       v-for="(category, idx) in gameState.state?.board"
       ref="categories"
@@ -78,6 +94,15 @@ watchEffect((onCleanup) => {
         <p>${{ category.clues[clue - 1]?.value }}</p>
       </button>
     </template>
+  </div>
+  <div class="userBox">
+    <PlayerListGame
+      :users="users"
+      :usersTalking="usersTalking"
+      :activePlayer="
+        gameState.state?.state === StateType.SelectClue ? gameState.state?.activePlayer : ''
+      "
+    ></PlayerListGame>
   </div>
   <Transition name="intro">
     <IntroAnimation
@@ -108,9 +133,12 @@ watchEffect((onCleanup) => {
   /* grid-template-rows: repeat(auto-fit, minmax(min-content, 1fr)); */
   text-align: center;
   text-transform: uppercase;
-  height: 100%;
+  height: 90%;
   width: 100%;
   box-sizing: border-box;
+
+  position: relative;
+  top: 0;
 
   user-select: none;
   overflow-wrap: break-word;
@@ -172,11 +200,13 @@ watchEffect((onCleanup) => {
   background: none;
 
   transition: background 0.1s ease;
-  cursor: pointer;
+
+  overflow: hidden;
 }
 
-.clue:hover {
+.ourTurn .clue:hover {
   background-color: var(--color-accent3);
+  cursor: pointer;
 }
 
 .clue .selected {
@@ -188,5 +218,20 @@ watchEffect((onCleanup) => {
   padding: 0;
   /* margin: 0.5em; */
   margin: 0 0.5em;
+}
+
+.userBox {
+  --10px-vh: 0.67364563545vh;
+
+  /* display: flex;
+  flex-wrap: nowrap; */
+  background-color: #000000aa;
+  height: 10%;
+  border-top: var(--10px-vh) solid black;
+
+  /* border: solid 0.6em black; */
+
+  position: relative;
+  bottom: 0;
 }
 </style>

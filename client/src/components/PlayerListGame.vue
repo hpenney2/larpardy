@@ -1,0 +1,32 @@
+<script setup lang="ts">
+import type { DiscordUsers } from "@/shared";
+import PlayerCard from "./PlayerCard.vue";
+
+defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: string }>();
+</script>
+
+<template>
+  <div class="playerList">
+    <template v-for="user in users?.participants" :key="user.id">
+      <PlayerCard
+        :user="user"
+        :speaking="usersTalking.has(user.id)"
+        :active="activePlayer === user.id"
+        :points="10000"
+      ></PlayerCard>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.playerList {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  gap: 1em;
+}
+</style>
