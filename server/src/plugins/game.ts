@@ -82,7 +82,7 @@ export default async function routes(
 
       let state: GameState;
       try {
-        state = await fastify.state.initOrJoin(instance, id);
+        state = await fastify.state.initOrJoin(instance, id, fastify.clueDb);
       } catch (error) {
         console.error(
           `[!!!] Error occured while trying to allow client (${id}) to join instance ${instance}.`,

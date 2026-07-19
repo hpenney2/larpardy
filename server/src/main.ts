@@ -20,6 +20,7 @@ import {
   type APIUser,
 } from "discord-api-types/v10";
 import { Client, Events } from "discord.js";
+import cluePlugin from "./jep.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -46,6 +47,8 @@ if (_MISSING_ENV.length > 0) {
 
 await fastify.register(fastifyRedis, { url: process.env.REDIS_URL });
 await fastify.register(statePlugin);
+
+fastify.register(cluePlugin, { path: path.join(__dirname, "..", "clue.db") });
 
 // awaiting because otherwise the instance won't be ready
 // before attaching middleware

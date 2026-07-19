@@ -2,11 +2,13 @@ import { DiscordAPIError, REST } from "@discordjs/rest";
 import type { FastifyRedis } from "@fastify/redis";
 import {
   StateType,
+  type BoardClue,
   type GameBoard,
   type GameState,
 } from "@larpardy/shared/state";
 import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
+import type { ClueDatabase } from "./jep.js";
 
 // we could theoretically add a redis: Redis = this.redis parameter to CRUD methods, but generic types become a problem lol
 // type Redis = RedisCommander<ClientContext>;
@@ -227,102 +229,21 @@ export class StageManager {
     };
   }
 
-  async initGame(instance: string, hostId: string) {
+  async initGame(instance: string, hostId: string, clueDb: ClueDatabase) {
     const key = rkey(KeyTypes.GAME, instance);
     const players = rkey(key, KeyTypes.PLAYERS);
     const boardKey = rkey(key, KeyTypes.BOARD);
 
-    // TODO: STRICTLY for testing. This should be replaced by an actual random mechanism.
-    const testClues = [
-      {
-        value: 200,
-        question:
-          "This is the world's most revered doctor in the TV show by the same name",
-        answer: "Who is Dr. House?",
-        answered: false,
-      },
-      {
-        value: 400,
-        question: "This is a test",
-        answer: "What is a test question?",
-        answered: false,
-      },
-      {
-        value: 600,
-        question: "That weird little green cyclops from the Pixar movie",
-        answer: "Who is Mike Wazowski?",
-        answered: false,
-      },
-      {
-        value: 800,
-        question: "AAAAAAAAA",
-        answer: "What is screaming?",
-        answered: false,
-      },
-      {
-        value: 1000,
-        question:
-          "This is a REALLLLLYYYYYYYYYYYYY long Q&A. Like, REALLY long. If I had to say, I don't think I've EVER seen a longer question in my entire whole life. Wowwie!",
-        answer: "Pleases stop",
-        answered: false,
-      },
-    ];
-    const board: GameBoard = [
-      {
-        name: "Dr. House",
-        clues: testClues,
-      },
-      {
-        name: "Joe!",
-        clues: testClues.map((x) => {
-          return {
-            ...x,
-            question: x.question + " joe",
-            answer: x.answer + " joe",
-          };
-        }),
-      },
-      {
-        name: "Please send help",
-        clues: testClues.map((x) => {
-          return {
-            ...x,
-            question: x.question + " HELP",
-            answer: x.answer + " HELP",
-          };
-        }),
-      },
-      {
-        name: "Boring Test Category Name 4",
-        clues: testClues.map((x) => {
-          return {
-            ...x,
-            question: x.question + " ASDASDAD",
-            answer: x.answer + " ASDASDAD",
-          };
-        }),
-      },
-      {
-        name: "Don't you know? Haven't you heard? Excuse me, SIR! Uhhh... yeah. Something like that. This is pretty long, isn't it?",
-        clues: testClues.map((x) => {
-          return {
-            ...x,
-            question: x.question + " INURWALLS1",
-            answer: x.answer + " INURWALLS1",
-          };
-        }),
-      },
-      {
-        name: "Cool Test Category Name :3",
-        clues: testClues.map((x) => {
-          return {
-            ...x,
-            question: x.question + " ASDASDAD121212",
-            answer: x.answer + " ASDASDAD12121212",
-          };
-        }),
-      },
-    ];
+    const board: GameBoard = clueDb
+      .getRandomCategoriesAndClues(6, 5)
+      .map((category) => {
+        const newClues: BoardClue[] = [];
+        for (const [i, clue] of category.clues.entries()) {
+          newClues.push({ ...clue, value: (i + 1) * 200, answered: false });
+        }
+
+        return { ...category, clues: newClues };
+      });
 
     const success = await this.redis
       .multi()
@@ -344,13 +265,13 @@ export class StageManager {
     return this.getState(instance);
   }
 
-  async initOrJoin(instance: string, userId: string) {
+  async initOrJoin(instance: string, userId: string, clueDb: ClueDatabase) {
     const game = rkey(KeyTypes.GAME, instance);
     if (await this.redis.exists(game)) {
       await this.joinPlayer(instance, userId);
       return await this.getState(instance);
     } else {
-      return await this.initGame(instance, userId);
+      return await this.initGame(instance, userId, clueDb);
     }
   }
 
