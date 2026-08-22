@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { gameState, socket } from "@/socket";
 import { StateType } from "@larpardy/shared/state";
-import { ref, useTemplateRef, watchEffect } from "vue";
+import { ref, useTemplateRef, watch, watchEffect } from "vue";
 import IntroAnimation from "./IntroAnimation.vue";
 import { auth, discordSdk } from "@/discord.ts";
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
@@ -35,12 +35,16 @@ watchEffect(() => {
 
 // play sound effect when it's time to select a clue again
 const playerUpAudio = new Audio("/audio/playerUp.mp3");
-watchEffect(() => {
-  if (gameState.state?.state === StateType.SelectClue) {
+watch(
+  () => gameState.state?.state,
+  (state, oldState) => {
+    if (state === StateType.SelectClue && state !== oldState) {
     playerUpAudio.currentTime = 0;
     playerUpAudio.play();
   }
-});
+  },
+  { immediate: true },
+);
 
 const categoryRefs = useTemplateRef("categories");
 const revealed = ref(0);
