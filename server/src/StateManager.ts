@@ -279,7 +279,9 @@ export class StageManager {
   async initOrJoin(instance: string, userId: string, clueDb: ClueDatabase) {
     const game = rkey(KeyTypes.GAME, instance);
     if (await this.redis.exists(game)) {
+      if ((await this.getStateType(instance)) <= StateType.Lobby)
       await this.joinPlayer(instance, userId);
+
       return await this.getState(instance);
     } else {
       return await this.initGame(instance, userId, clueDb);

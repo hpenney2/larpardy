@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DiscordUsers } from "@/shared";
 import PlayerCard from "./PlayerCard.vue";
+import { gameState } from "@/socket.ts";
 
 defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: string }>();
 </script>
@@ -12,7 +13,7 @@ defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: st
         :user="user"
         :speaking="usersTalking.has(user.id)"
         :active="activePlayer === user.id"
-        :points="10000"
+        v-if="gameState.state?.players.includes(user.id)"
       ></PlayerCard>
     </template>
   </div>

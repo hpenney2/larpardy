@@ -2,7 +2,7 @@
 import type { DiscordUser } from "@/shared";
 import DiscordAvatar from "./DiscordAvatar.vue";
 
-defineProps<{
+const { points = 0 } = defineProps<{
   user: DiscordUser;
   speaking?: boolean;
   loading?: boolean;
