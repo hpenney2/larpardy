@@ -152,6 +152,10 @@ export class StageManager {
     );
   }
 
+  async setHostPlayer(instance: string, userId: string) {
+    return this.redis.hset(gkey(instance), "host", userId);
+  }
+
   async getHostPlayer(instance: string) {
     return this.redis.hget(gkey(instance), "host") as Promise<string>; // trust me bro :3
   }

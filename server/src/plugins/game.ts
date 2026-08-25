@@ -139,9 +139,14 @@ export default async function routes(
           // undefined behavior with clients.size?)
           fastify.state
             .leavePlayer(instance, id)
-            .then(() => fastify.state.getPlayersLen(instance))
-            .then((playerCount) => {
-              if (playerCount <= 0 && clients && clients.size > 0) {
+            .then(() =>
+              Promise.all([
+                fastify.state.getPlayers(instance),
+                fastify.state.getHostPlayer(instance),
+              ]),
+            )
+            .then(([players, host]) => {
+              if (players!.length <= 0 && clients && clients.size > 0) {
                 broadcastAlert(
                   "All players have left. The game will now reset.",
                 );
@@ -160,9 +165,10 @@ export default async function routes(
                     clientSocket.data.discord.id,
                   )
                   .then(() => true);
-              } else {
-                return false;
+              } else if (!players!.includes(host as string)) {
+                fastify.state.setHostPlayer(instance, players![0]!);
               }
+              return false;
             })
             .then((reset) => {
               if (reset && clients) {
