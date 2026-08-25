@@ -8,9 +8,16 @@ await setupPromise; // wait until SDK is ready
 
 export type LSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-export const gameState = reactive<{ connected: boolean; state: GameState | null }>({
+export const gameState = reactive<{
+  connected: boolean;
+  state: GameState | null;
+  ping: number;
+  timeOffset: number;
+}>({
   connected: false,
   state: null,
+  ping: 0,
+  timeOffset: 0,
 });
 
 export const socket: LSocket = markRaw(
@@ -22,9 +29,22 @@ export const socket: LSocket = markRaw(
   }),
 );
 
+function syncTime() {
+  socket.emit("ping", Date.now(), (clientTime, serverTime) => {
+    const now = Date.now();
+    const roundTrip = now - clientTime;
+    const serverTimeAtArrival = serverTime + roundTrip / 2;
+    const timeOffset = serverTimeAtArrival - now;
+
+    gameState.ping = roundTrip;
+    gameState.timeOffset = timeOffset;
+  });
+}
+
 socket.on("connect", () => {
   gameState.connected = socket.connected;
   console.log("[socket.io] connected to server");
+  syncTime();
 });
 
 socket.on("disconnect", () => {
@@ -51,3 +71,9 @@ socket.on("stateUpdate", (newState, callback) => {
   console.log("[new state]", newState);
   callback();
 });
+
+setInterval(() => {
+  if (socket.connected) {
+    syncTime();
+  }
+}, 1000);

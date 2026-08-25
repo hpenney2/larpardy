@@ -1,4 +1,4 @@
-import { StateType, type GameState } from "@larpardy/shared/state";
+import { BUZZ_DELAY, StateType, type GameState } from "@larpardy/shared/state";
 import type { FastifyInstance } from "fastify";
 
 // time to wait for state update ack in milliseconds
@@ -86,7 +86,13 @@ export default async function routes(
     });
 
     socket.onAny((event, ...value) => {
+      if (event === "ping") return;
       console.debug(`[socket ${id}] >> ${event}`, value);
+    });
+
+    // ping and sync time
+    socket.on("ping", (clientTime, callback) => {
+      callback(clientTime, Date.now());
     });
 
     let isReady = false;
@@ -254,6 +260,10 @@ export default async function routes(
           setTimeout(async () => {
             await fastify.state.setClueRevealed(instance, cat, clue);
             await fastify.state.setStateType(instance, StateType.AnsweringClue);
+            await fastify.state.setCanBuzzInAt(
+              instance,
+              Date.now() + BUZZ_DELAY,
+            ); // can buzz in after BUZZ_DELAY
             await sendCurrentState();
           }, 1500),
         );

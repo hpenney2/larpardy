@@ -6,9 +6,15 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  ping: (
+    clientTime: number,
+    callback: (clientTime: number, serverTime: number) => void,
+  ) => void;
   ready: () => void;
+
   readyForNext: (current: StateType) => void;
   unreadyForNext: () => void;
   startGame: () => void;
   selectClue: (category: number, clueValue: number) => void;
+  buzz: () => void;
 }

@@ -47,8 +47,9 @@ export interface GameState {
   activePlayer?: string; // ID of the player selecting the current clue
   score: Scores;
 
-  canBuzzInAt: number; // unix timestamp when buzzing in is allowed. shouldn't be used by the client because client time could be horribly desynced
+  canBuzzInAt?: number; // unix timestamp when buzzing in is allowed. should only be used by the client if the time offset is added
+  buzzedPlayer?: string; // ID of the player who has buzzed in
 }
 
 /** Time before a player can buzz in milliseconds. */
-export const BUZZ_DELAY = 2000;
+export const BUZZ_DELAY = 5000;

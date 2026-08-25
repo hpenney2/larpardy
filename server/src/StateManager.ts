@@ -235,6 +235,23 @@ export class StageManager {
     // await this.setClueRevealed(instance, categoryIndex, clueValue);
   }
 
+  async getCanBuzzInAt(instance: string) {
+    const value = await this.redis.hget(gkey(instance), "canBuzzInAt");
+    return value != null ? parseInt(value) : null;
+  }
+
+  async setCanBuzzInAt(instance: string, timestamp: number) {
+    return this.redis.hset(gkey(instance), "canBuzzInAt", timestamp);
+  }
+
+  async getBuzzedPlayer(instance: string) {
+    return this.redis.hget(gkey(instance), "buzzedPlayer");
+  }
+
+  async setBuzzedPlayer(instance: string, userId: string) {
+    return this.redis.hset(gkey(instance), "buzzedPlayer", userId);
+  }
+
   async getActivePlayer(instance: string) {
     return this.redis.hget(gkey(instance), "activePlayer");
   }
