@@ -110,6 +110,7 @@ main {
   top: 0;
   left: 0;
   max-width: 100vw;
+  font-size: 0.5vw;
   opacity: 0.25;
   user-select: none;
 }
