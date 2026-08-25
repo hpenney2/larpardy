@@ -37,7 +37,7 @@ function gkey(...args: string[]) {
   return rkey(KeyTypes.GAME, ...args);
 }
 
-export class StageManager {
+export class StateManager {
   constructor(private redis: FastifyRedis) {}
 
   protected async scan(match: string) {
@@ -474,12 +474,12 @@ export class StageManager {
 
 declare module "fastify" {
   interface FastifyInstance {
-    state: StageManager;
+    state: StateManager;
   }
 }
 
 const statePlugin = fastifyPlugin(async function (fastify, _) {
-  fastify.decorate("state", new StageManager(fastify.redis));
+  fastify.decorate("state", new StateManager(fastify.redis));
 });
 
 export default statePlugin;
