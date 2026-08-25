@@ -2,6 +2,7 @@ import { GameState, StateType } from "./state";
 
 export interface ServerToClientEvents {
   stateUpdate: (state: GameState, callback: () => void) => void;
+  showAlert: (text: string) => void;
 }
 
 export interface ClientToServerEvents {

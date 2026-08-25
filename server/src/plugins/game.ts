@@ -73,6 +73,14 @@ export default async function routes(
       stateUpdated(await fastify.state.getState(instance), retries);
     }
 
+    function sendAlert(text: string) {
+      socket.emit("showAlert", text);
+    }
+
+    function broadcastAlert(text: string) {
+      io.to(instance).emit("showAlert", text);
+    }
+
     socket.on("disconnect", (reason) => {
       console.log("user disconnected :(", id, reason);
     });
@@ -125,7 +133,46 @@ export default async function routes(
           // undefined behavior with clients.size?)
           fastify.state
             .leavePlayer(instance, id)
+            .then(() => fastify.state.getPlayersLen(instance))
+            .then((playerCount) => {
+              if (playerCount <= 0 && clients && clients.size > 0) {
+                broadcastAlert(
+                  "All players have left. The game will now reset.",
+                );
+
+                const clientSocket = io.sockets.sockets.get(
+                  [...clients].filter((x) => x !== socket.id)[0]!,
+                );
+
+                if (!clientSocket) return false;
+
+                return fastify.state
+                  .resetInstance(
+                    instance,
+                    fastify.clueDb,
+                    false,
+                    clientSocket.data.discord.id,
+                  )
+                  .then(() => true);
+              } else {
+                return false;
+              }
+            })
+            .then((reset) => {
+              if (reset && clients) {
+                for (const client of clients) {
+                  const clientSocket = io.sockets.sockets.get(client);
+                  if (clientSocket) {
+                    fastify.state.joinPlayer(
+                      instance,
+                      clientSocket.data.discord.id,
+                    );
+                  }
+                }
+              }
+            })
             .then(() => sendCurrentState());
+
           // TODO: this SHOULD reevaluate readyForNext because everyone else might already be ready!
           // (for example, a player whose internet dropped)
         }

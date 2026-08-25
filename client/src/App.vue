@@ -8,6 +8,7 @@ import WaitModal from "./components/WaitModal.vue";
 import LobbyScreen from "./components/LobbyScreen.vue";
 import { socket, gameState } from "@/socket.ts";
 import GameBoard from "./components/GameBoard.vue";
+import AlertModal from "./components/AlertModal.vue";
 
 const devMode = import.meta.env.DEV;
 
@@ -59,6 +60,15 @@ socket.on("connect", () => {
 if (gameState.state == null) {
   socket.emit("ready");
 }
+
+// other socket listeners
+const alertText = ref<string>();
+socket.on("showAlert", (text) => {
+  alertText.value = text;
+  setTimeout(() => {
+    alertText.value = undefined;
+  }, 3000);
+});
 </script>
 
 <template>
@@ -73,6 +83,7 @@ if (gameState.state == null) {
     </Transition>
   </template>
 
+  <AlertModal v-if="alertText">{{ alertText }}</AlertModal>
   <WaitModal v-if="gameState.state == null || !gameState.connected"></WaitModal>
   <p id="debug" v-if="devMode">debug: {{ gameState }}</p>
 </template>

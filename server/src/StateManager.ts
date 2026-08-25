@@ -89,6 +89,10 @@ export class StageManager {
     return this.redis.smembers(rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS));
   }
 
+  getPlayersLen(instance: string): Promise<number> {
+    return this.redis.scard(gkey(instance, KeyTypes.PLAYERS));
+  }
+
   async joinPlayer(instance: string, userId: string) {
     return this.redis.sadd(
       rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS),
@@ -348,6 +352,30 @@ export class StageManager {
     console.log("[state] unlinking", keys);
 
     return this.redis.unlink(keys);
+  }
+
+  async resetInstance(
+    instance: string,
+    clueDb: ClueDatabase,
+    keepPlayers: boolean,
+    newHost?: string,
+  ) {
+    if (!keepPlayers && !newHost) {
+      throw Error(
+        "if not keeping players during reset, a new host player must be given",
+      );
+    }
+
+    const players = keepPlayers ? await this.getPlayers(instance) : null;
+    const existingHost = await this.getHostPlayer(instance);
+    await this.dropInstance(instance);
+    await this.initGame(instance, newHost ?? existingHost, clueDb);
+
+    if (keepPlayers) {
+      for (const player of players!) {
+        await this.joinPlayer(instance, player);
+      }
+    }
   }
 
   async dropStaleKeys() {
