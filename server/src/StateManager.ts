@@ -1,11 +1,13 @@
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import type { FastifyRedis } from "@fastify/redis";
 import {
+  DEFAULT_SETTINGS,
   StateType,
   type BoardClue,
   type GameBoard,
   type GameState,
   type Scores,
+  type Settings,
 } from "@larpardy/shared/state";
 import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
@@ -20,6 +22,7 @@ const enum KeyTypes {
   READYPLAYERS = "readyPlayers",
   BOARD = "board",
   SCORE = "score",
+  SETTINGS = "settings",
 }
 
 /** r(edis) key */
@@ -199,6 +202,16 @@ export class StageManager {
       .exec();
   }
 
+  async getSettings(instance: string) {
+    return (
+      (await this.jsonGet(gkey(instance, KeyTypes.SETTINGS))) as Settings[]
+    )[0]!;
+  }
+
+  async updateSettings(instance: string, settings: Settings) {
+    return this.jsonSet(gkey(instance, KeyTypes.SETTINGS), "$", settings);
+  }
+
   async setClueRevealed(
     instance: string,
     categoryIndex: number,
@@ -284,11 +297,14 @@ export class StageManager {
     const players = await this.getPlayers(instance);
     const readyPlayers = await this.getReadyForNext(instance);
 
+    const settings = await this.getSettings(instance);
+
     const playerSet = new Set(players);
     const readyPlayerSet = new Set(readyPlayers);
     const isReadyForNext =
       readyPlayerSet.size === playerSet.size &&
-      playerSet.isSubsetOf(readyPlayerSet);
+      playerSet.isSubsetOf(readyPlayerSet) &&
+      (settings.isHostless || readyPlayerSet.size > 1);
 
     const board = (
       (await this.jsonGet(gkey(instance, KeyTypes.BOARD))) as GameBoard[]
@@ -306,6 +322,7 @@ export class StageManager {
       isReadyForNext,
       board,
       score,
+      settings,
     };
   }
 
@@ -313,6 +330,7 @@ export class StageManager {
     const key = rkey(KeyTypes.GAME, instance);
     const players = rkey(key, KeyTypes.PLAYERS);
     const boardKey = rkey(key, KeyTypes.BOARD);
+    const settingsKey = rkey(key, KeyTypes.SETTINGS);
 
     const board: GameBoard = clueDb
       .getRandomCategoriesAndClues(6, 5)
@@ -336,6 +354,7 @@ export class StageManager {
       .hsetex(key, "FNX", "FIELDS", 2, "host", hostId, "state", StateType.Lobby)
       .sadd(players, hostId)
       .call("JSON.SET", boardKey, "$", JSON.stringify(board))
+      .call("JSON.SET", settingsKey, "$", JSON.stringify(DEFAULT_SETTINGS))
       .exec();
 
     // TODO: should this error out instead?

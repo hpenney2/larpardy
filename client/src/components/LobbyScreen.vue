@@ -4,6 +4,9 @@ import DiscordAvatar from "./DiscordAvatar.vue";
 import TitleHeader from "./TitleHeader.vue";
 import { auth as discordAuth } from "@/discord.ts";
 import { socket, gameState } from "@/socket.ts";
+import ToggleSwitch from "./ToggleSwitch.vue";
+import { computed } from "vue";
+import HoverTooltip from "./HoverTooltip.vue";
 
 defineProps<{
   users?: DiscordUsers;
@@ -23,10 +26,18 @@ function startGame() {
     socket.emit("startGame");
   }
 }
+
+const isHost = computed(() => discordAuth.user.id === gameState.state?.host);
+
+function sendSettings() {
+  if (isHost.value) {
+    socket.emit("updateSettings", gameState.state!.settings);
+  }
+}
 </script>
 <template>
   <TitleHeader></TitleHeader>
-  <!-- TODO: add host transfer and settings -->
+  <!-- TODO: add host transfer -->
   <div class="lobbyScreen">
     <h2>Lobby</h2>
     <h3>Waiting to start...</h3>
@@ -46,6 +57,7 @@ function startGame() {
           class="avatar"
           :class="{ loading: !gameState.state?.players.includes(user.id) }"
         ></DiscordAvatar>
+        <p v-if="user.id === gameState.state?.host" class="hostTag">(host)</p>
       </div>
     </div>
     <div class="buttons">
@@ -58,10 +70,21 @@ function startGame() {
         :disabled="!gameState.state?.isReadyForNext"
         type="button"
         @click="startGame"
-        v-if="gameState.state?.host === discordAuth.user.id"
+        v-if="isHost"
       >
         START!
       </button>
+    </div>
+    <div class="settings">
+      <h3>Settings</h3>
+      <ToggleSwitch
+        v-model="gameState.state!.settings.isHostless"
+        :disabled="!isHost"
+        @update:model-value="sendSettings"
+        >Hostless Mode<HoverTooltip
+          title="Allows the game host to play, but only one person can buzz in per question."
+        ></HoverTooltip
+      ></ToggleSwitch>
     </div>
   </div>
 </template>
@@ -119,6 +142,12 @@ function startGame() {
   to {
     background-color: rgb(from var(--color-accent) r g b / 0);
   }
+}
+
+.hostTag {
+  font-size: smaller;
+  color: #ddd;
+  margin: 1em 0;
 }
 
 .buttons {

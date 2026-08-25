@@ -237,6 +237,13 @@ export default async function routes(
       }
     });
 
+    socket.on("updateSettings", async (settings) => {
+      if ((await fastify.state.getState(instance)).host === id) {
+        await fastify.state.updateSettings(instance, settings);
+        await sendCurrentState();
+      }
+    });
+
     socket.on("selectClue", async (cat, clue) => {
       const state = await fastify.state.getState(instance);
 

@@ -25,6 +25,7 @@
     "@larpardy/shared": "workspace:*",
     "@vueuse/core": "^14.4.0",
     "discord-api-types": "^0.38.49",
+    "oh-vue-icons": "1.0.0-rc3",
     "socket.io-client": "^4.8.3",
     "vue": "^3.5.38"
   },

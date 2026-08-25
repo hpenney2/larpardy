@@ -4,6 +4,7 @@ packages:
   - "shared"
 allowBuilds:
   esbuild: true
+  vue-demi: true
 syncInjectedDepsAfterScripts:
   - build
 injectWorkspacePackages: true

@@ -1,4 +1,4 @@
-import { GameState, StateType } from "./state";
+import { GameState, Settings, StateType } from "./state";
 
 export interface ServerToClientEvents {
   stateUpdate: (state: GameState, callback: () => void) => void;
@@ -12,6 +12,7 @@ export interface ClientToServerEvents {
   ) => void;
   ready: () => void;
 
+  updateSettings: (settings: Settings) => void;
   readyForNext: (current: StateType) => void;
   unreadyForNext: () => void;
   startGame: () => void;
