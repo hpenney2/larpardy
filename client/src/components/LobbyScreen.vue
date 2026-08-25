@@ -58,6 +58,7 @@ function startGame() {
         :disabled="!gameState.state?.isReadyForNext"
         type="button"
         @click="startGame"
+        v-if="gameState.state?.host === discordAuth.user.id"
       >
         START!
       </button>
