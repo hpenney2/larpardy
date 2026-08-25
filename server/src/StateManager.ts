@@ -5,6 +5,7 @@ import {
   type BoardClue,
   type GameBoard,
   type GameState,
+  type Scores,
 } from "@larpardy/shared/state";
 import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
@@ -18,6 +19,7 @@ const enum KeyTypes {
   PLAYERS = "players",
   READYPLAYERS = "readyPlayers",
   BOARD = "board",
+  SCORE = "score",
 }
 
 /** r(edis) key */
@@ -155,6 +157,26 @@ export class StageManager {
     return this.redis.hset(gkey(instance), "state", state);
   }
 
+  async incrScore(instance: string, userId: string, points: number) {
+    return this.redis.hincrby(gkey(instance, KeyTypes.SCORE), userId, points);
+  }
+
+  async getScore(instance: string, userId: string) {
+    return parseInt(
+      (await this.redis.hget(gkey(instance, KeyTypes.SCORE), userId)) ?? "0",
+    );
+  }
+
+  async getAllScores(instance: string) {
+    const scores = await this.redis.hgetall(gkey(instance, KeyTypes.SCORE));
+    const parsedScores: Scores = {};
+    for (const [user, score] of Object.entries(scores)) {
+      parsedScores[user] = parseInt(score);
+    }
+
+    return parsedScores;
+  }
+
   async startGame(instance: string) {
     const startingPlayer = await this.redis.srandmember(
       gkey(instance, KeyTypes.PLAYERS),
@@ -173,17 +195,40 @@ export class StageManager {
       .exec();
   }
 
+  async setClueRevealed(
+    instance: string,
+    categoryIndex: number,
+    clueIndex: number,
+    revealed: boolean = true,
+  ) {
+    return this.jsonSet(
+      gkey(instance, KeyTypes.BOARD),
+      `$[${categoryIndex}].clues[${clueIndex}].revealed`,
+      revealed,
+    );
+  }
+
   async setClueAnswered(
     instance: string,
     categoryIndex: number,
-    clueValue: number,
+    clueIndex: number,
     answered: boolean = true,
   ) {
     return this.jsonSet(
       gkey(instance, KeyTypes.BOARD),
-      `$[${categoryIndex}].clues[?(@.value == ${clueValue})].answered`,
+      `$[${categoryIndex}].clues[${clueIndex}].answered`,
       answered,
     );
+  }
+
+  async selectClue(instance: string, categoryIndex: number, clueValue: number) {
+    await this.redis
+      .multi()
+      .hset(gkey(instance), "currentlyAnsweringCategory", categoryIndex)
+      .hset(gkey(instance), "currentlyAnsweringClue", clueValue)
+      // .hset(gkey(instance), "state", StateType.AnsweringClue)
+      .exec();
+    // await this.setClueRevealed(instance, categoryIndex, clueValue);
   }
 
   async getActivePlayer(instance: string) {
@@ -231,12 +276,15 @@ export class StageManager {
     //   x.clues.sort((a, b) => a.value - b.value);
     // });
 
+    const score = await this.getAllScores(instance);
+
     return {
       ...(game as GameState),
       players,
       readyForNextState: readyPlayers,
       isReadyForNext,
       board,
+      score,
     };
   }
 
@@ -250,7 +298,12 @@ export class StageManager {
       .map((category) => {
         const newClues: BoardClue[] = [];
         for (const [i, clue] of category.clues.entries()) {
-          newClues.push({ ...clue, value: (i + 1) * 200, answered: false });
+          newClues.push({
+            ...clue,
+            value: (i + 1) * 200,
+            revealed: false,
+            answered: false,
+          });
         }
 
         return { ...category, clues: newClues };
@@ -280,7 +333,7 @@ export class StageManager {
     const game = rkey(KeyTypes.GAME, instance);
     if (await this.redis.exists(game)) {
       if ((await this.getStateType(instance)) <= StateType.Lobby)
-      await this.joinPlayer(instance, userId);
+        await this.joinPlayer(instance, userId);
 
       return await this.getState(instance);
     } else {

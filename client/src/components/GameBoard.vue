@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { gameState, socket } from "@/socket";
 import { StateType } from "@larpardy/shared/state";
-import { ref, useTemplateRef, watch, watchEffect } from "vue";
+import { computed, ref, useTemplateRef, watch, watchEffect } from "vue";
 import IntroAnimation from "./IntroAnimation.vue";
 import { auth, discordSdk } from "@/discord.ts";
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
 import PlayerListGame from "./PlayerListGame.vue";
 import type { DiscordUsers } from "@/shared.ts";
+import GameQuestion from "./GameQuestion.vue";
 
 defineProps<{
   users?: DiscordUsers;
@@ -39,9 +40,9 @@ watch(
   () => gameState.state?.state,
   (state, oldState) => {
     if (state === StateType.SelectClue && state !== oldState) {
-    playerUpAudio.currentTime = 0;
-    playerUpAudio.play();
-  }
+      playerUpAudio.currentTime = 0;
+      playerUpAudio.play();
+    }
   },
   { immediate: true },
 );
@@ -63,22 +64,35 @@ watchEffect((onCleanup) => {
         socket.emit("readyForNext", StateType.GameStartShowCategories);
         clearInterval(timeout);
       }
-    }, 2000);
+    }, 1500);
     onCleanup(() => clearInterval(timeout));
   } else if (gameState.state != null && gameState.state.state > StateType.GameStartShowCategories) {
     revealed.value = gameState.state.board.length;
   }
 });
+
+// const clueRefs = useTemplateRef("clue");
+// const questionRef = useTemplateRef("questionRef");
+const ourTurn = computed(
+  () =>
+    gameState.state?.state === StateType.SelectClue &&
+    gameState.state?.activePlayer === auth.user.id,
+);
+function selectClue(cat?: number, clue?: number) {
+  if (cat != null && clue != null && ourTurn.value) {
+    socket.emit("selectClue", cat, clue);
+  }
+}
 </script>
 
 <template>
-  <div id="board" ref="board" :class="{ ourTurn: gameState.state?.activePlayer === auth.user.id }">
+  <div id="board" ref="board" :class="{ ourTurn }">
     <div
       v-for="(category, idx) in gameState.state?.board"
       ref="categories"
       class="category"
       :class="{
-        selected: gameState.state?.currentlyAnswering?.[0] == idx,
+        selected: gameState.state?.currentlyAnsweringCategory == idx,
         revealed: revealed > idx,
       }"
       :key="idx + category.name"
@@ -86,25 +100,48 @@ watchEffect((onCleanup) => {
       <h2>{{ category.name }}</h2>
     </div>
     <template v-for="clue in gameState.state?.board[0]?.clues.length">
-      <button
-        v-for="category in gameState.state?.board"
-        type="button"
-        class="clue"
+      <div
         :key="clue + category.name"
+        v-for="(category, idx) in gameState.state?.board"
+        class="clue"
         :class="{
-          selected: gameState.state?.currentlyAnswering?.[1] == category.clues[clue - 1]?.value,
+          selected:
+            gameState.state?.currentlyAnsweringCategory == idx &&
+            gameState.state?.currentlyAnsweringClue == clue - 1,
         }"
       >
-        <p>${{ category.clues[clue - 1]?.value }}</p>
-      </button>
+        <button
+          type="button"
+          class="clueButton"
+          @click="selectClue(idx, clue - 1)"
+          :class="{ answered: category.clues[clue - 1]?.revealed }"
+        >
+          ${{ category.clues[clue - 1]?.value }}
+        </button>
+      </div>
     </template>
+    <Transition name="questionAnim">
+      <GameQuestion
+        v-if="
+          gameState.state?.state === StateType.AnsweringClue &&
+          gameState.state.currentlyAnsweringCategory != null &&
+          gameState.state.currentlyAnsweringClue != null
+        "
+        :clue="
+          gameState.state.board[gameState.state.currentlyAnsweringCategory]?.clues[
+            gameState.state.currentlyAnsweringClue
+          ]!
+        "
+        class="question"
+      ></GameQuestion>
+    </Transition>
   </div>
   <div class="userBox">
     <PlayerListGame
       :users="users"
       :usersTalking="usersTalking"
       :activePlayer="
-        gameState.state?.state === StateType.SelectClue ? gameState.state?.activePlayer : ''
+        gameState.state?.state === StateType.SelectClue ? gameState.state?.activePlayer : undefined
       "
     ></PlayerListGame>
   </div>
@@ -194,30 +231,45 @@ watchEffect((onCleanup) => {
 .clue {
   --10px-vh: 0.67364563545vh;
 
+  align-content: center;
   border: var(--10px-vh) solid black;
   outline: var(--10px-vh) solid black;
+  background: none;
+
+  transition: background 0.1s ease;
+
+  /* overflow: hidden; */
+  position: relative;
+}
+
+.clue > .answered {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clueButton {
+  background: none;
   align-content: center;
   color: var(--color-primary);
   font-size: 7vh;
   font-weight: bold;
   text-shadow: 5px 7px 0 black;
-  background: none;
+  border: none;
+  width: 100%;
+  height: 100%;
 
   transition: background 0.1s ease;
-
-  overflow: hidden;
 }
 
-.ourTurn .clue:hover {
+.ourTurn:not(:has(.selected)) .clueButton:hover {
   background-color: var(--color-accent3);
   cursor: pointer;
 }
 
-.clue .selected {
+.selected {
   background-color: var(--color-accent) !important;
 }
 
-.clue > *,
 .category > * {
   padding: 0;
   /* margin: 0.5em; */
@@ -237,5 +289,33 @@ watchEffect((onCleanup) => {
 
   position: relative;
   bottom: 0;
+}
+
+.question {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* z-index: 1; */
+
+  width: 100%;
+  height: 100%;
+
+  /* transition: scale 1s linear; */
+  /* scale: 0.5; */
+
+  /* transform: translateX(var(--translate-x)) translateY(var(--translate-y)); */
+}
+
+.questionAnim-enter-from,
+.questionAnim-leave-to {
+  opacity: 0;
+  scale: 0;
+}
+
+.questionAnim-enter-active,
+.questionAnim-leave-active {
+  transition:
+    opacity 0.5s ease-in-out,
+    scale 1s linear;
 }
 </style>

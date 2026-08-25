@@ -9,4 +9,5 @@ export interface ClientToServerEvents {
   readyForNext: (current: StateType) => void;
   unreadyForNext: () => void;
   startGame: () => void;
+  selectClue: (category: number, clueValue: number) => void;
 }

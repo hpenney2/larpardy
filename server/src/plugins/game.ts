@@ -7,11 +7,28 @@ const STATE_UPDATE_RETRIES = 3;
 
 const READY_NOCLEAR_STATES = new Set<StateType>([StateType.Lobby]);
 
+function filterClues(state: GameState, hostMode: boolean) {
+  return state.board.map((category) => {
+    category.clues = category.clues.map((clue) => {
+      if (!clue.revealed) {
+        clue.question = null;
+      }
+      if (!clue.revealed || (!clue.answered && !hostMode)) {
+        clue.answer = null;
+      }
+      return clue;
+    });
+
+    return category;
+  });
+}
+
 export default async function routes(
   fastify: FastifyInstance,
   options: Object,
 ) {
   const io = fastify.socketIO;
+  const timeouts: NodeJS.Timeout[] = [];
 
   async function socketFromId(user: string) {
     return (await io.fetchSockets())
@@ -32,13 +49,10 @@ export default async function routes(
       retries: number = STATE_UPDATE_RETRIES,
     ) {
       // strip questions and answers. NO CHEATING >:(
-      state.board.forEach((category) =>
-        category.clues.map((clue) => {
-          clue.question = null;
-          clue.answer = null;
-        }),
-      );
+      state.board = filterClues(state, state.host === id);
 
+      // FIXME: this could be a problem if a client is unresponsive for multiple state updates! (they might get stale data as the last message!)
+      // we should only repeat the latest state update
       io.timeout(STATE_UPDATE_TIMEOUT)
         .to(instance)
         .emit("stateUpdate", state, (err) => {
@@ -100,6 +114,9 @@ export default async function routes(
         // we're the last client!
         if (clients && clients.size === 1) {
           console.log(`cleaning up room for ${instance}`);
+          for (const timeout of timeouts) {
+            clearTimeout(timeout);
+          }
           fastify.state.dropInstance(instance);
         } else {
           // these are async but we don't need to wait for them
@@ -109,6 +126,8 @@ export default async function routes(
           fastify.state
             .leavePlayer(instance, id)
             .then(() => sendCurrentState());
+          // TODO: this SHOULD reevaluate readyForNext because everyone else might already be ready!
+          // (for example, a player whose internet dropped)
         }
       });
 
@@ -162,6 +181,35 @@ export default async function routes(
       if (state.host === id && state.isReadyForNext) {
         await fastify.state.startGame(instance);
         await sendCurrentState();
+      }
+    });
+
+    socket.on("selectClue", async (cat, clue) => {
+      const state = await fastify.state.getState(instance);
+
+      if (
+        state.state === StateType.SelectClue &&
+        state.activePlayer === id &&
+        state.board[0] != null &&
+        cat <= state.board.length &&
+        clue <= state.board[0].clues.length &&
+        !state.board[cat]?.clues[clue]?.revealed
+      ) {
+        await fastify.state.selectClue(instance, cat, clue);
+        await sendCurrentState();
+
+        // TODO: having server-side timeouts like this could reaaally cause issues on restart
+        // because this isn't in Redis and will be LOST.
+        // how can we make this work when the server restarts?
+        // either store timeouts by some kind of repeatable type in Redis, or make sure they *finish* before a restart
+        // maybe even wait for games to finish before finishing a restart?
+        timeouts.push(
+          setTimeout(async () => {
+            await fastify.state.setClueRevealed(instance, cat, clue);
+            await fastify.state.setStateType(instance, StateType.AnsweringClue);
+            await sendCurrentState();
+          }, 1500),
+        );
       }
     });
 
