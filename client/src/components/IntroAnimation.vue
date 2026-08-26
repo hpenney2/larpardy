@@ -65,9 +65,8 @@ audio.play();
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translateZ(0);
+  transform: translateZ(0) translateX(-200%) translateY(200%);
   /* translate: -50% -50%; */
-  translate: -200% 200%;
   width: 50vw;
   image-rendering: pixelated;
   -webkit-user-drag: none;
@@ -77,15 +76,13 @@ audio.play();
 
 @keyframes logoanim {
   0% {
-    translate: -200% 200%;
-    scale: 2.5;
+    transform: translateZ(0) translateX(-200%) translateY(200%) scale(2.5);
   }
   /* 20% {
     translate: -150% 100%;
   } */
   100% {
-    translate: -50% -50%;
-    scale: 1;
+    transform: translateZ(0) translateX(-50%) translateY(-50%) scale(1);
   }
 }
 </style>
