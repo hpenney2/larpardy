@@ -37,7 +37,10 @@ const buzzedInAgo = computed(() => {
       </div>
     </Transition>
     <BuzzerButton
-      v-if="gameState.state?.settings.isHostless || gameState.state?.host !== auth.user.id"
+      v-if="
+        (gameState.state?.settings.isHostless || gameState.state?.host !== auth.user.id) &&
+        !clue.answered
+      "
     ></BuzzerButton>
     <div
       class="buzzedData"
@@ -65,6 +68,7 @@ const buzzedInAgo = computed(() => {
         }}
       </time>
     </div>
+    <QuestionHostControls :clue></QuestionHostControls>
   </div>
 </template>
 

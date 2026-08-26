@@ -1,4 +1,5 @@
 import { BUZZ_DELAY, StateType, type GameState } from "@larpardy/shared/state";
+import { Sounds } from "@larpardy/shared/sounds";
 import type { FastifyInstance } from "fastify";
 
 // time to wait for state update ack in milliseconds
@@ -66,7 +67,7 @@ export default async function routes(
 
         for (const sock of roomSockets) {
           const userId = io.sockets.sockets.get(sock)?.data.discord.id;
-      io.timeout(STATE_UPDATE_TIMEOUT)
+          io.timeout(STATE_UPDATE_TIMEOUT)
             .to(sock)
             .emit(
               "stateUpdate",
@@ -74,16 +75,16 @@ export default async function routes(
                 ? hostState
                 : playerState,
               (err) => {
-          if (err) {
-            console.warn("ack error updating state (timeout):", err);
-            if (retries > 1) {
-              sendCurrentState(retries - 1); // in case the state we had is stale now
-            } else {
-              console.warn(
-                `[!] all state update retries expended on instance ${instance}. unresponsive client?`,
-              );
-            }
-          }
+                if (err) {
+                  console.warn("ack error updating state (timeout):", err);
+                  if (retries > 1) {
+                    sendCurrentState(retries - 1); // in case the state we had is stale now
+                  } else {
+                    console.warn(
+                      `[!] all state update retries expended on instance ${instance}. unresponsive client?`,
+                    );
+                  }
+                }
               },
             );
         }
@@ -316,11 +317,110 @@ export default async function routes(
       if (
         state.state === StateType.AnsweringClue &&
         state.canBuzzInAt != null &&
-        state.canBuzzInAt <= Date.now()
+        state.canBuzzInAt <= Date.now() &&
+        !state.alreadyBuzzed?.includes(id)
       ) {
         await fastify.state.buzz(instance, id);
         await sendCurrentState();
         console.log(id + " buzzed in!");
+      }
+    });
+
+    socket.on("revealAnswerHostless", async () => {
+      const state = await fastify.state.getState(instance);
+
+      if (
+        state.host === id &&
+        state.state === StateType.BuzzedIn &&
+        state.settings.isHostless
+      ) {
+        await fastify.state.setClueAnswered(
+          instance,
+          state.currentlyAnsweringCategory!,
+          state.currentlyAnsweringClue!,
+        );
+        await sendCurrentState();
+      }
+    });
+
+    socket.on("correctAnswer", async () => {
+      const state = await fastify.state.getState(instance);
+      const clue =
+        state.board[state.currentlyAnsweringCategory!]?.clues[
+          state.currentlyAnsweringClue!
+        ];
+
+      if (
+        state.host === id &&
+        state.state === StateType.BuzzedIn &&
+        state.buzzedPlayer &&
+        clue
+      ) {
+        await fastify.state.setClueAnswered(
+          instance,
+          state.currentlyAnsweringCategory!,
+          state.currentlyAnsweringClue!,
+        );
+        await fastify.state.incrScore(instance, state.buzzedPlayer, clue.value);
+        await fastify.state.setActivePlayer(instance, state.buzzedPlayer);
+        await sendCurrentState();
+        io.to(instance).emit("playSound", Sounds.Correct);
+        timeouts.push(
+          setTimeout(async () => {
+            await fastify.state.resetAlreadyBuzzed(instance);
+            await fastify.state.unselectClue(instance);
+            await fastify.state.setStateType(instance, StateType.SelectClue);
+            await sendCurrentState();
+          }, 3000),
+        );
+      }
+    });
+
+    socket.on("incorrectAnswer", async () => {
+      const state = await fastify.state.getState(instance);
+      const clue =
+        state.board[state.currentlyAnsweringCategory!]?.clues[
+          state.currentlyAnsweringClue!
+        ];
+
+      if (
+        state.host === id &&
+        state.state === StateType.BuzzedIn &&
+        state.buzzedPlayer &&
+        clue
+      ) {
+        await fastify.state.incrScore(
+          instance,
+          state.buzzedPlayer,
+          -clue.value,
+        );
+        await fastify.state.setBuzzedPlayer(instance, "");
+
+        if (
+          state.settings.isHostless ||
+          state.alreadyBuzzed?.length === state.players.length - 2 // minus 2 because minus the incorrect player and minus the host
+        ) {
+          await fastify.state.setClueAnswered(
+            instance,
+            state.currentlyAnsweringCategory!,
+            state.currentlyAnsweringClue!,
+          );
+          await sendCurrentState();
+          timeouts.push(
+            setTimeout(async () => {
+              await fastify.state.unselectClue(instance);
+              await fastify.state.resetAlreadyBuzzed(instance);
+              await fastify.state.setStateType(instance, StateType.SelectClue);
+              await sendCurrentState();
+            }, 3000),
+          );
+        } else {
+          await fastify.state.addToAlreadyBuzzed(instance, state.buzzedPlayer);
+          await fastify.state.setStateType(instance, StateType.AnsweringClue);
+          await sendCurrentState();
+        }
+
+        io.to(instance).emit("playSound", Sounds.Incorrect);
       }
     });
 

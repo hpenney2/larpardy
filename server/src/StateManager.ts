@@ -23,6 +23,7 @@ const enum KeyTypes {
   BOARD = "board",
   SCORE = "score",
   SETTINGS = "settings",
+  ALREADYBUZZED = "alreadyBuzzed",
 }
 
 /** r(edis) key */
@@ -108,6 +109,7 @@ export class StateManager {
       .multi()
       .srem(rkey(KeyTypes.GAME, instance, KeyTypes.PLAYERS), userId)
       .srem(rkey(KeyTypes.GAME, instance, KeyTypes.READYPLAYERS), userId)
+      .srem(rkey(KeyTypes.GAME, instance, KeyTypes.ALREADYBUZZED), userId)
       .exec();
   }
 
@@ -258,6 +260,14 @@ export class StateManager {
     // await this.setClueRevealed(instance, categoryIndex, clueValue);
   }
 
+  async unselectClue(instance: string) {
+    await this.redis
+      .multi()
+      .hdel(gkey(instance), "currentlyAnsweringCategory")
+      .hdel(gkey(instance), "currentlyAnsweringClue")
+      .exec();
+  }
+
   async getCanBuzzInAt(instance: string) {
     const value = await this.redis.hget(gkey(instance), "canBuzzInAt");
     return value != null ? parseInt(value) : null;
@@ -282,6 +292,32 @@ export class StateManager {
       .hset(gkey(instance), "state", StateType.BuzzedIn)
       .hset(gkey(instance), "buzzedInAt", Date.now())
       .exec();
+  }
+
+  async getAlreadyBuzzed(instance: string): Promise<string[]> {
+    return this.redis.smembers(
+      rkey(KeyTypes.GAME, instance, KeyTypes.ALREADYBUZZED),
+    );
+  }
+
+  async addToAlreadyBuzzed(instance: string, userId: string) {
+    return this.redis.sadd(
+      rkey(KeyTypes.GAME, instance, KeyTypes.ALREADYBUZZED),
+      userId,
+    );
+  }
+
+  async removeFromAlreadyBuzzed(instance: string, userId: string) {
+    return this.redis.srem(
+      rkey(KeyTypes.GAME, instance, KeyTypes.ALREADYBUZZED),
+      userId,
+    );
+  }
+
+  async resetAlreadyBuzzed(instance: string) {
+    return this.redis.del(
+      rkey(KeyTypes.GAME, instance, KeyTypes.ALREADYBUZZED),
+    );
   }
 
   async setActivePlayer(instance: string, userId: string) {
@@ -337,6 +373,7 @@ export class StateManager {
     // });
 
     const score = await this.getAllScores(instance);
+    const alreadyBuzzed = await this.getAlreadyBuzzed(instance);
 
     return {
       ...(game as GameState),
@@ -346,6 +383,7 @@ export class StateManager {
       board,
       score,
       settings,
+      alreadyBuzzed,
     };
   }
 

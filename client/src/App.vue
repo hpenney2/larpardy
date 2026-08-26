@@ -9,6 +9,7 @@ import LobbyScreen from "./components/LobbyScreen.vue";
 import { socket, gameState } from "@/socket.ts";
 import GameBoard from "./components/GameBoard.vue";
 import AlertModal from "./components/AlertModal.vue";
+import { Sounds } from "@larpardy/shared/sounds";
 
 const devMode = import.meta.env.DEV;
 
@@ -68,6 +69,21 @@ socket.on("showAlert", (text) => {
   setTimeout(() => {
     alertText.value = undefined;
   }, 3000);
+});
+
+socket.on("playSound", (sound) => {
+  const audio = new Audio(sound);
+
+  switch (sound) {
+    case Sounds.Correct:
+      audio.volume = 0.5;
+      break;
+    case Sounds.Incorrect:
+      audio.volume = 0.8;
+      break;
+  }
+
+  audio.play();
 });
 </script>
 

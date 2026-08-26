@@ -3,7 +3,7 @@ import { auth } from "@/discord";
 import { gameState, socket } from "@/socket";
 import { BUZZ_DELAY, StateType } from "@larpardy/shared/state";
 import { useTimestamp } from "@vueuse/core";
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 
 const now = useTimestamp();
 const canBuzzIn = computed(
@@ -16,6 +16,22 @@ function onHotkey(event: KeyboardEvent) {
     buzz();
   }
 }
+
+const buzzAudio = new Audio("/audio/buzz.mp3");
+buzzAudio.volume = 0.75;
+buzzAudio.playbackRate = 2.25;
+
+const incorrectAudio = new Audio("/audio/incorrect.mp3");
+incorrectAudio.volume = 0.8;
+
+watch(
+  () => gameState.state?.state,
+  (state, oldState) => {
+    if (state !== oldState && state === StateType.BuzzedIn) {
+      buzzAudio.play();
+    }
+  },
+);
 
 window.addEventListener("keydown", onHotkey);
 onUnmounted(() => window.removeEventListener("keydown", onHotkey));
@@ -46,22 +62,31 @@ function buzz() {
       id="buzzer"
       class="button"
       @mousedown="buzz"
-      :disabled="canBuzzIn > 0 || gameState.state?.state === StateType.BuzzedIn"
+      :disabled="
+        canBuzzIn > 0 ||
+        gameState.state?.state === StateType.BuzzedIn ||
+        gameState.state?.alreadyBuzzed?.includes(auth.user.id)
+      "
     >
       <template
         v-if="
-          gameState.state?.state !== StateType.BuzzedIn ||
-          gameState.state?.buzzedPlayer !== auth.user.id
+          gameState.state?.state === StateType.BuzzedIn &&
+          gameState.state?.buzzedPlayer === auth.user.id
         "
       >
-        BUZZ
-        <br />
-        <span class="keybind-hint hint">(space)</span>
-      </template>
-      <template v-else>
         BUZZED IN!
         <br />
         <span class="hint">Say your answer!</span>
+      </template>
+      <template v-else-if="gameState.state?.alreadyBuzzed?.includes(auth.user.id)">
+        Already buzzed
+        <br />
+        <span class="hint">You were incorrect.</span>
+      </template>
+      <template v-else>
+        BUZZ
+        <br />
+        <span class="keybind-hint hint">(space)</span>
       </template>
     </button>
   </div>

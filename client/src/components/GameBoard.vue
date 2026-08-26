@@ -150,7 +150,11 @@ function selectClue(cat?: number, clue?: number) {
       :users="users"
       :usersTalking="usersTalking"
       :activePlayer="
-        gameState.state?.state === StateType.SelectClue ? gameState.state?.activePlayer : undefined
+        gameState.state?.state === StateType.SelectClue
+          ? gameState.state?.activePlayer
+          : gameState.state?.state === StateType.BuzzedIn
+            ? gameState.state.buzzedPlayer
+            : undefined
       "
     ></PlayerListGame>
   </div>
