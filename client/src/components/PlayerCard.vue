@@ -23,7 +23,9 @@ const { points = 0 } = defineProps<{
       :loading="loading"
       class="avatar"
     ></DiscordAvatar>
-    <p>${{ points }}</p>
+    <p :class="{ badMoney: points < 0 }">
+      {{ points >= 0 ? "" : "-" }}${{ (points >= 0 ? points : -points).toLocaleString() }}
+    </p>
   </div>
 </template>
 
@@ -65,5 +67,9 @@ const { points = 0 } = defineProps<{
 
 .avatar:deep(img) {
   width: 3.5vh;
+}
+
+.badMoney {
+  color: red;
 }
 </style>
