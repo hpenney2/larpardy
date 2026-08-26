@@ -146,6 +146,12 @@ function selectClue(cat?: number, clue?: number) {
     </Transition>
   </div>
   <div class="userBox">
+    <!-- 
+    please forgive me for this ternary expression
+         SelectClue -> activePlayer
+         BuzzedIn -> buzzedPlayer, or if no buzzedPlayer, activePlayer, unless they are in alreadyBuzzed (so they got it wrong)
+         None of the above -> nobody  
+    -->
     <PlayerListGame
       :users="users"
       :usersTalking="usersTalking"
@@ -153,7 +159,11 @@ function selectClue(cat?: number, clue?: number) {
         gameState.state?.state === StateType.SelectClue
           ? gameState.state?.activePlayer
           : gameState.state?.state === StateType.BuzzedIn
-            ? gameState.state.buzzedPlayer
+            ? gameState.state.buzzedPlayer ||
+              (gameState.state.activePlayer &&
+                (!gameState.state.alreadyBuzzed?.includes(gameState.state.activePlayer)
+                  ? gameState.state.activePlayer
+                  : undefined))
             : undefined
       "
     ></PlayerListGame>
