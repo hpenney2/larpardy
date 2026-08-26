@@ -76,7 +76,7 @@ socket.on("playSound", (sound) => {
 
   switch (sound) {
     case Sounds.Correct:
-      audio.volume = 0.5;
+      audio.volume = 0.25;
       break;
     case Sounds.Incorrect:
       audio.volume = 0.8;

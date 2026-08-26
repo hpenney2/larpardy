@@ -21,9 +21,6 @@ const buzzAudio = new Audio("/audio/buzz.mp3");
 buzzAudio.volume = 0.75;
 buzzAudio.playbackRate = 2.25;
 
-const incorrectAudio = new Audio("/audio/incorrect.mp3");
-incorrectAudio.volume = 0.8;
-
 watch(
   () => gameState.state?.state,
   (state, oldState) => {
