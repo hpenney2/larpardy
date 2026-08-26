@@ -1,4 +1,5 @@
-# Untitled Jeopardy Clone
+# Untitled Jeopardy Clone 
+<img src="https://hackatime.hackclub.com/api/v1/badge/U0B9T5JELG4/hpenney2/larpardy" alt="Hackatime" align="right"></img>
 
 Play (not) Jeopardy with your friends in Discord!
 
