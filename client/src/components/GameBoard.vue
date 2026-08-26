@@ -79,7 +79,13 @@ const ourTurn = computed(
     gameState.state?.activePlayer === auth.user.id,
 );
 function selectClue(cat?: number, clue?: number) {
-  if (cat != null && clue != null && ourTurn.value) {
+  if (
+    cat != null &&
+    clue != null &&
+    ourTurn.value &&
+    gameState.state?.currentlyAnsweringCategory == null &&
+    gameState.state?.currentlyAnsweringClue == null
+  ) {
     socket.emit("selectClue", cat, clue);
   }
 }

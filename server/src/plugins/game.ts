@@ -166,7 +166,9 @@ export default async function routes(
                   )
                   .then(() => true);
               } else if (!players!.includes(host as string)) {
-                fastify.state.setHostPlayer(instance, players![0]!);
+                return fastify.state
+                  .setHostPlayer(instance, players![0]!)
+                  .then(() => false);
               }
               return false;
             })
@@ -256,6 +258,8 @@ export default async function routes(
       if (
         state.state === StateType.SelectClue &&
         state.activePlayer === id &&
+        state.currentlyAnsweringCategory == null &&
+        state.currentlyAnsweringClue == null &&
         state.board[0] != null &&
         cat <= state.board.length &&
         clue <= state.board[0].clues.length &&
