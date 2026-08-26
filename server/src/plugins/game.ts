@@ -8,6 +8,7 @@ const STATE_UPDATE_RETRIES = 3;
 const READY_NOCLEAR_STATES = new Set<StateType>([StateType.Lobby]);
 
 function filterClues(state: GameState, hostMode: boolean) {
+  state = structuredClone(state);
   return state.board.map((category) => {
     category.clues = category.clues.map((clue) => {
       if (!clue.revealed) {
@@ -48,14 +49,31 @@ export default async function routes(
       state: GameState,
       retries: number = STATE_UPDATE_RETRIES,
     ) {
-      // strip questions and answers. NO CHEATING >:(
-      state.board = filterClues(state, state.host === id);
+      const roomSockets = io.sockets.adapter.rooms.get(instance);
+      if (roomSockets) {
+        // strip questions and answers for players. NO CHEATING >:(
+        const hostBoard = filterClues(state, true);
+        const playerBoard = filterClues(state, false);
 
-      // FIXME: this could be a problem if a client is unresponsive for multiple state updates! (they might get stale data as the last message!)
-      // we should only repeat the latest state update
+        const hostState = structuredClone(state);
+        hostState.board = hostBoard;
+
+        const playerState = structuredClone(state);
+        playerState.board = playerBoard;
+
+        // console.dir(hostState, { depth: null });
+        // console.dir(playerState, { depth: null });
+
+        for (const sock of roomSockets) {
+          const userId = io.sockets.sockets.get(sock)?.data.discord.id;
       io.timeout(STATE_UPDATE_TIMEOUT)
-        .to(instance)
-        .emit("stateUpdate", state, (err) => {
+            .to(sock)
+            .emit(
+              "stateUpdate",
+              !state.settings.isHostless && state.host === userId
+                ? hostState
+                : playerState,
+              (err) => {
           if (err) {
             console.warn("ack error updating state (timeout):", err);
             if (retries > 1) {
@@ -66,7 +84,10 @@ export default async function routes(
               );
             }
           }
-        });
+              },
+            );
+        }
+      }
     }
 
     async function sendCurrentState(retries: number = STATE_UPDATE_RETRIES) {
