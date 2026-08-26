@@ -189,9 +189,15 @@ export class StateManager {
   }
 
   async startGame(instance: string) {
-    const startingPlayer = await this.redis.srandmember(
-      gkey(instance, KeyTypes.PLAYERS),
-    );
+    const host = await this.getHostPlayer(instance);
+    const settings = await this.getSettings(instance);
+    let players = await this.getPlayers(instance);
+
+    if (!settings.isHostless) {
+      players = players.filter((id) => id !== host);
+    }
+
+    let startingPlayer = players[Math.floor(Math.random() * players.length)];
 
     if (!startingPlayer) {
       throw new Error(

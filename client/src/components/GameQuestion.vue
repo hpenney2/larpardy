@@ -36,7 +36,9 @@ const buzzedInAgo = computed(() => {
         <p class="questionText">{{ clue.answer }}</p>
       </div>
     </Transition>
-    <BuzzerButton></BuzzerButton>
+    <BuzzerButton
+      v-if="gameState.state?.settings.isHostless || gameState.state?.host !== auth.user.id"
+    ></BuzzerButton>
     <div
       class="buzzedData"
       v-if="gameState.state?.state === StateType.BuzzedIn && buzzedPlayer && buzzedInAgo"
