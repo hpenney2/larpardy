@@ -287,6 +287,20 @@ export default async function routes(
       }
     });
 
+    socket.on("buzz", async () => {
+      const state = await fastify.state.getState(instance);
+
+      if (
+        state.state === StateType.AnsweringClue &&
+        state.canBuzzInAt != null &&
+        state.canBuzzInAt <= Date.now()
+      ) {
+        await fastify.state.buzz(instance, id);
+        await sendCurrentState();
+        console.log(id + " buzzed in!");
+      }
+    });
+
     // kick out clients that don't fully connect in 1 minute
     setTimeout(() => {
       if (!isReady) {

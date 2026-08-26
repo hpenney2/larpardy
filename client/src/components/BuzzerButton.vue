@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { gameState } from "@/socket";
-import { BUZZ_DELAY } from "@larpardy/shared/state";
+import { auth } from "@/discord";
+import { gameState, socket } from "@/socket";
+import { BUZZ_DELAY, StateType } from "@larpardy/shared/state";
 import { useTimestamp } from "@vueuse/core";
-import { computed, onUnmounted } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 
 const now = useTimestamp();
 const canBuzzIn = computed(
@@ -19,8 +20,13 @@ function onHotkey(event: KeyboardEvent) {
 window.addEventListener("keydown", onHotkey);
 onUnmounted(() => window.removeEventListener("keydown", onHotkey));
 
+const buzzed = ref(false);
 function buzz() {
-  console.log("buzz :3");
+  if (canBuzzIn.value <= 0 && gameState.state?.state !== StateType.BuzzedIn) {
+    socket.emit("buzz");
+    buzzed.value = true;
+  }
+  console.log("buzzed!");
 }
 </script>
 
@@ -30,11 +36,33 @@ function buzz() {
     :style="{
       '--progress': (1 - canBuzzIn / BUZZ_DELAY) * 100 + '%',
     }"
+    :class="{
+      buzzed:
+        gameState.state?.buzzedPlayer === auth.user.id &&
+        gameState.state?.state === StateType.BuzzedIn,
+    }"
   >
-    <button id="buzzer" class="button" @mousedown="buzz" :disabled="canBuzzIn > 0">
-      BUZZ
-      <br />
-      <span class="keybind-hint">(space)</span>
+    <button
+      id="buzzer"
+      class="button"
+      @mousedown="buzz"
+      :disabled="canBuzzIn > 0 || gameState.state?.state === StateType.BuzzedIn"
+    >
+      <template
+        v-if="
+          gameState.state?.state !== StateType.BuzzedIn ||
+          gameState.state?.buzzedPlayer !== auth.user.id
+        "
+      >
+        BUZZ
+        <br />
+        <span class="keybind-hint hint">(space)</span>
+      </template>
+      <template v-else>
+        BUZZED IN!
+        <br />
+        <span class="hint">Say your answer!</span>
+      </template>
     </button>
   </div>
 </template>
@@ -55,13 +83,30 @@ function buzz() {
   border: 1px dashed #ddd;
 }
 
+.buzzed > #buzzer {
+  opacity: 1;
+  background-color: var(--color-accent3);
+  border: none;
+  outline: 5px solid var(--color-accent2);
+  animation: outline-pulse 2s linear alternate infinite;
+}
+
+@keyframes outline-pulse {
+  0% {
+    outline-width: 0px;
+  }
+  100% {
+    outline-width: 8px;
+  }
+}
+
 .buzzerWrapper {
   position: relative;
   isolation: isolate;
 }
 
 /* https://stackoverflow.com/a/74099159 */
-.buzzerWrapper::after {
+.buzzerWrapper:not(.buzzed)::after {
   content: "";
   display: block;
   position: absolute;
@@ -76,10 +121,13 @@ function buzz() {
   border-radius: 10px;
 }
 
-.keybind-hint {
+.hint {
   font-size: 0.8em;
   opacity: 0.75;
   font-family: monospace;
+}
+
+.keybind-hint {
   display: none;
 }
 

@@ -269,6 +269,19 @@ export class StateManager {
     return this.redis.hset(gkey(instance), "buzzedPlayer", userId);
   }
 
+  async buzz(instance: string, userId: string) {
+    return this.redis
+      .multi()
+      .hset(gkey(instance), "buzzedPlayer", userId)
+      .hset(gkey(instance), "state", StateType.BuzzedIn)
+      .hset(gkey(instance), "buzzedInAt", Date.now())
+      .exec();
+  }
+
+  async setActivePlayer(instance: string, userId: string) {
+    return this.redis.hset(gkey(instance), "activePlayer", userId);
+  }
+
   async getActivePlayer(instance: string) {
     return this.redis.hget(gkey(instance), "activePlayer");
   }

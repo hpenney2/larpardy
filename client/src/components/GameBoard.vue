@@ -129,7 +129,8 @@ function selectClue(cat?: number, clue?: number) {
     <Transition name="questionAnim">
       <GameQuestion
         v-if="
-          gameState.state?.state === StateType.AnsweringClue &&
+          (gameState.state?.state === StateType.AnsweringClue ||
+            gameState.state?.state === StateType.BuzzedIn) &&
           gameState.state.currentlyAnsweringCategory != null &&
           gameState.state.currentlyAnsweringClue != null
         "
@@ -138,6 +139,8 @@ function selectClue(cat?: number, clue?: number) {
             gameState.state.currentlyAnsweringClue
           ]!
         "
+        :users="users!"
+        :usersTalking="usersTalking"
         class="question"
       ></GameQuestion>
     </Transition>
@@ -305,6 +308,7 @@ function selectClue(cat?: number, clue?: number) {
 
   width: 100%;
   height: 100%;
+  overflow: auto;
 
   /* transition: scale 1s linear; */
   /* scale: 0.5; */

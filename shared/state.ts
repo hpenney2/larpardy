@@ -4,6 +4,7 @@ export enum StateType {
   GameStartShowCategories,
   SelectClue,
   AnsweringClue,
+  BuzzedIn,
 }
 
 export const StateFriendlyNames: Readonly<Record<StateType, string>> = {
@@ -12,6 +13,7 @@ export const StateFriendlyNames: Readonly<Record<StateType, string>> = {
   [StateType.GameStartShowCategories]: "Revealing categories...!",
   [StateType.SelectClue]: "Selecting clue",
   [StateType.AnsweringClue]: "Answering a question",
+  [StateType.BuzzedIn]: "Someone buzzed in!",
 };
 
 export interface BoardClue {
@@ -54,11 +56,13 @@ export interface GameState {
   // visitedClues: { [category: number]: number[] }; // category -> list of clues (by index)
   currentlyAnsweringCategory?: number; // category index
   currentlyAnsweringClue?: number; // clue index
-  activePlayer?: string; // ID of the player selecting the current clue
+  activePlayer?: string; // ID of the player taking the current action
   score: Scores;
 
   canBuzzInAt?: number; // unix timestamp when buzzing in is allowed. should only be used by the client if the time offset is added
   buzzedPlayer?: string; // ID of the player who has buzzed in
+  buzzedInAt?: number; // unix timestamp when that player buzzed in
+  alreadyBuzzed?: string[]; // players who've buzzed in already (and were wrong)
 }
 
 /** Time before a player can buzz in milliseconds. */
