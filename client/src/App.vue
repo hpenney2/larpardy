@@ -47,7 +47,14 @@ watchEffect(() => {
   discordSdk.commands.setActivity({
     activity: {
       type: ActivityType.Playing,
-      party: { size: [users.value.participants.length, 10] },
+      party: {
+        size: [
+          gameState.state.settings.isHostless
+            ? gameState.state.players.length
+            : gameState.state.players.length - 1,
+          10,
+        ],
+      },
       details: StateFriendlyNames[gameState.state.state],
       state: gameState.state.host === auth.user.id ? "Hosting" : "Playing",
     },
