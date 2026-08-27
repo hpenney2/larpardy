@@ -113,7 +113,7 @@ const entryPointCommand: Partial<APIApplicationCommand> = {
     ApplicationIntegrationType.UserInstall,
   ],
   type: ApplicationCommandType.PrimaryEntryPoint,
-  handler: EntryPointCommandHandlerType.AppHandler,
+  handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
 };
 async function configDiscordCommands() {
   const rest = new REST({ version: "10" }).setToken(
@@ -169,7 +169,8 @@ fastify.discord.on(Events.InteractionCreate, async (interaction) => {
     `activity launched by ${interaction.user.globalName} (@${interaction.user.username} / ${interaction.user.id} / interaction ID ${interaction.id})`,
   );
 
-  await interaction.launchActivity();
+  if (interaction.command?.handler === EntryPointCommandHandlerType.AppHandler)
+    await interaction.launchActivity();
   // await interaction.reply({ embeds: [{ type: EmbedType.Link }] });
 });
 
