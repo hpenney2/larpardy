@@ -10,6 +10,7 @@ import { socket, gameState } from "@/socket.ts";
 import GameBoard from "./components/GameBoard.vue";
 import AlertModal from "./components/AlertModal.vue";
 import { Sounds } from "@larpardy/shared/sounds";
+import GameEnd from "./components/GameEnd.vue";
 
 const devMode = import.meta.env.DEV;
 
@@ -95,6 +96,13 @@ socket.on("playSound", (sound) => {
       </main>
       <main v-else>
         <GameBoard :users="users" :users-talking="usersTalking"></GameBoard>
+        <Transition name="gameEnd">
+          <GameEnd
+            :users
+            :usersTalking
+            v-if="gameState.state?.state === StateType.GameOver"
+          ></GameEnd>
+        </Transition>
       </main>
     </Transition>
   </template>
@@ -133,5 +141,15 @@ main {
 
 #debug:hover {
   opacity: 0;
+}
+
+.gameEnd-enter-from,
+.gameEnd-leave-to {
+  transform: translateY(100%);
+}
+
+.gameEnd-enter-active,
+.gameEnd-leave-active {
+  transition: transform 1s ease-out;
 }
 </style>

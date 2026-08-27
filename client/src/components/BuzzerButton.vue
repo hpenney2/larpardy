@@ -3,7 +3,7 @@ import { auth } from "@/discord";
 import { gameState, socket } from "@/socket";
 import { BUZZ_DELAY, StateType } from "@larpardy/shared/state";
 import { useTimestamp } from "@vueuse/core";
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 
 const now = useTimestamp();
 const canBuzzIn = computed(
@@ -16,19 +16,6 @@ function onHotkey(event: KeyboardEvent) {
     buzz();
   }
 }
-
-const buzzAudio = new Audio("/audio/buzz.mp3");
-buzzAudio.volume = 0.75;
-buzzAudio.playbackRate = 2.25;
-
-watch(
-  () => gameState.state?.state,
-  (state, oldState) => {
-    if (state !== oldState && state === StateType.BuzzedIn) {
-      buzzAudio.play();
-    }
-  },
-);
 
 window.addEventListener("keydown", onHotkey);
 onUnmounted(() => window.removeEventListener("keydown", onHotkey));

@@ -4,7 +4,7 @@ import BuzzerButton from "./BuzzerButton.vue";
 import DiscordAvatar from "./DiscordAvatar.vue";
 import { gameState } from "@/socket.ts";
 import type { DiscordUsers } from "@/shared.ts";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useTimestamp } from "@vueuse/core";
 import QuestionHostControls from "./QuestionHostControls.vue";
 import { auth } from "@/discord.ts";
@@ -25,6 +25,28 @@ const buzzedInAgo = computed(() => {
   if (gameState.state?.buzzedInAt)
     return now.value - gameState.state.buzzedInAt - gameState.timeOffset;
 });
+
+const buzzAudio = new Audio("/audio/buzz.mp3");
+buzzAudio.volume = 0.75;
+buzzAudio.playbackRate = 2;
+
+watch(
+  [() => gameState.state?.state, () => gameState.state?.buzzedPlayer],
+  ([state, buzzedPlayer], [oldState, oldBuzzed]) => {
+    console.log(
+      `[buzzer test] test: ${state !== oldState || buzzedPlayer !== oldBuzzed} state ${state} / old ${oldState} buzzed ${buzzedPlayer} / old ${oldBuzzed}`,
+    );
+    if (
+      (state !== oldState || buzzedPlayer !== oldBuzzed) &&
+      state === StateType.BuzzedIn &&
+      buzzedPlayer
+    ) {
+      buzzAudio.currentTime = 0;
+      buzzAudio.play();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -76,7 +98,7 @@ const buzzedInAgo = computed(() => {
 .question {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* justify-content: center; */
   align-items: center;
   padding: 1em;
 
@@ -86,6 +108,13 @@ const buzzedInAgo = computed(() => {
   /* transform: rotate(0) translate(-50%, -50%); */
   /* transform: translate(-50%, -50%) scaleX(calc(100vw / 100%)) scaleY(calc(100vh / 100%)); */
   /* translate: -50% -50%; */
+}
+
+.question > :first-child {
+  margin-top: auto;
+}
+.question > :last-child {
+  margin-bottom: auto;
 }
 
 .questionText {

@@ -168,6 +168,7 @@ function selectClue(cat?: number, clue?: number) {
       "
     ></PlayerListGame>
   </div>
+
   <Transition name="intro">
     <IntroAnimation
       v-if="gameState.state?.state === StateType.GameStartIntro"

@@ -5,6 +5,7 @@ export enum StateType {
   SelectClue,
   AnsweringClue,
   BuzzedIn,
+  GameOver,
 }
 
 export const StateFriendlyNames: Readonly<Record<StateType, string>> = {
@@ -14,6 +15,7 @@ export const StateFriendlyNames: Readonly<Record<StateType, string>> = {
   [StateType.SelectClue]: "Selecting clue",
   [StateType.AnsweringClue]: "Answering a question",
   [StateType.BuzzedIn]: "Someone buzzed in!",
+  [StateType.GameOver]: "Finishing a game",
 };
 
 export interface BoardClue {

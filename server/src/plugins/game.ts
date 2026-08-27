@@ -343,6 +343,28 @@ export default async function routes(
       }
     });
 
+    async function checkGameEnd() {
+      const state = await fastify.state.getState(instance);
+
+      let gameShouldEnd = true;
+      for (const category of state.board) {
+        if (!gameShouldEnd) break;
+
+        for (const clue of category.clues) {
+          if (!clue.answered) {
+            gameShouldEnd = false;
+            break;
+          }
+        }
+      }
+
+      if (gameShouldEnd) {
+        await fastify.state.setStateType(instance, StateType.GameOver);
+      }
+
+      return gameShouldEnd;
+    }
+
     socket.on("correctAnswer", async () => {
       const state = await fastify.state.getState(instance);
       const clue =
@@ -363,6 +385,7 @@ export default async function routes(
         );
         await fastify.state.incrScore(instance, state.buzzedPlayer, clue.value);
         await fastify.state.setActivePlayer(instance, state.buzzedPlayer);
+        await fastify.state.setBuzzedPlayer(instance, "");
         await sendCurrentState();
         io.to(instance).emit("playSound", Sounds.Correct);
         timeouts.push(
@@ -370,6 +393,7 @@ export default async function routes(
             await fastify.state.resetAlreadyBuzzed(instance);
             await fastify.state.unselectClue(instance);
             await fastify.state.setStateType(instance, StateType.SelectClue);
+            await checkGameEnd();
             await sendCurrentState();
           }, 3000),
         );
@@ -394,11 +418,13 @@ export default async function routes(
           state.buzzedPlayer,
           -clue.value,
         );
+        await fastify.state.addToAlreadyBuzzed(instance, state.buzzedPlayer);
         await fastify.state.setBuzzedPlayer(instance, "");
 
+        console.log();
         if (
           state.settings.isHostless ||
-          state.alreadyBuzzed?.length === state.players.length - 2 // minus 2 because minus the incorrect player and minus the host
+          (state.alreadyBuzzed?.length ?? 0) >= state.players.length - 2 // minus 2 because minus the incorrect player and minus the host
         ) {
           await fastify.state.setClueAnswered(
             instance,
@@ -406,21 +432,62 @@ export default async function routes(
             state.currentlyAnsweringClue!,
           );
           await sendCurrentState();
+
           timeouts.push(
             setTimeout(async () => {
               await fastify.state.unselectClue(instance);
               await fastify.state.resetAlreadyBuzzed(instance);
               await fastify.state.setStateType(instance, StateType.SelectClue);
+              await checkGameEnd();
               await sendCurrentState();
             }, 3000),
           );
         } else {
-          await fastify.state.addToAlreadyBuzzed(instance, state.buzzedPlayer);
           await fastify.state.setStateType(instance, StateType.AnsweringClue);
           await sendCurrentState();
         }
 
         io.to(instance).emit("playSound", Sounds.Incorrect);
+      }
+    });
+
+    socket.on("giveUp", async () => {
+      const state = await fastify.state.getState(instance);
+      const clue =
+        state.board[state.currentlyAnsweringCategory!]?.clues[
+          state.currentlyAnsweringClue!
+        ];
+
+      if (
+        state.host === id &&
+        state.state === StateType.AnsweringClue &&
+        clue
+      ) {
+        await fastify.state.setBuzzedPlayer(instance, "");
+        await fastify.state.setClueAnswered(
+          instance,
+          state.currentlyAnsweringCategory!,
+          state.currentlyAnsweringClue!,
+        );
+        await fastify.state.setStateType(instance, StateType.BuzzedIn);
+
+        for (const player of state.players) {
+          await fastify.state.addToAlreadyBuzzed(instance, player);
+        }
+
+        await sendCurrentState();
+
+        io.to(instance).emit("playSound", Sounds.Incorrect);
+
+        timeouts.push(
+          setTimeout(async () => {
+            await fastify.state.unselectClue(instance);
+            await fastify.state.resetAlreadyBuzzed(instance);
+            await fastify.state.setStateType(instance, StateType.SelectClue);
+            await checkGameEnd();
+            await sendCurrentState();
+          }, 3000),
+        );
       }
     });
 
