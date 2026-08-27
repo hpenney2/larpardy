@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { DiscordUsers } from "@/shared";
-import { gameState } from "@/socket";
+import { gameState, socket } from "@/socket";
 import PlayerCard from "./PlayerCard.vue";
 import { auth } from "@/discord.ts";
 import { computed } from "vue";
+import { StateType } from "@larpardy/shared/state";
 
 const { users } = defineProps<{
   users?: DiscordUsers;
@@ -21,7 +22,8 @@ gameEndAudio.volume = 0.2;
 gameEndAudio.play();
 
 function returnToLobby() {
-  if (gameState.state?.host === auth.user.id) {
+  if (gameState.state?.host === auth.user.id && gameState.state.state === StateType.GameOver) {
+    socket.emit("returnToLobby");
   }
 }
 </script>

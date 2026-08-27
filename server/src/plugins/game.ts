@@ -491,6 +491,15 @@ export default async function routes(
       }
     });
 
+    socket.on("returnToLobby", async () => {
+      const state = await fastify.state.getState(instance);
+
+      if (state.host === id && state.state === StateType.GameOver) {
+        await fastify.state.resetInstance(instance, fastify.clueDb, true);
+        await sendCurrentState();
+      }
+    });
+
     // kick out clients that don't fully connect in 1 minute
     setTimeout(() => {
       if (!isReady) {

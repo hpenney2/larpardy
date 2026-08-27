@@ -465,7 +465,7 @@ export class StateManager {
 
     const players = keepPlayers ? await this.getPlayers(instance) : null;
     const existingHost = await this.getHostPlayer(instance);
-    await this.dropInstance(instance);
+    await this.dropInstance(instance); // is this necessary?
     await this.initGame(instance, newHost ?? existingHost, clueDb);
 
     if (keepPlayers) {

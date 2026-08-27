@@ -25,4 +25,6 @@ export interface ClientToServerEvents {
   incorrectAnswer: () => void;
   giveUp: () => void;
   revealAnswerHostless: () => void;
+
+  returnToLobby: () => void;
 }
