@@ -178,6 +178,7 @@ fastify.discord.login(process.env.DISCORD_BOT_TOKEN);
 // Fastify plugins
 fastify.register(fastifyStatic, {
   root: path.join(__dirname, "..", "public"), // if we're in production, the client files should exist in ./public/ (running from ./dist/, so ../public)
+  logLevel: "debug",
 });
 
 fastify.register(fastifyAutoload, { dir: join(__dirname, "plugins") });
