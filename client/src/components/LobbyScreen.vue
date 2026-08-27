@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { type DiscordUsers } from "@/shared";
+import { DISCORD_INVITE, type DiscordUsers } from "@/shared";
 import DiscordAvatar from "./DiscordAvatar.vue";
 import TitleHeader from "./TitleHeader.vue";
-import { auth as discordAuth } from "@/discord.ts";
+import { auth as discordAuth, discordSdk } from "@/discord.ts";
 import { socket, gameState } from "@/socket.ts";
 import ToggleSwitch from "./ToggleSwitch.vue";
 import { computed } from "vue";
@@ -86,6 +86,12 @@ function sendSettings() {
         ></HoverTooltip
       ></ToggleSwitch>
     </div>
+    <div class="discord">
+      <span>Join our server!</span>
+      <button type="button" @click="discordSdk.commands.openExternalLink({ url: DISCORD_INVITE })">
+        <v-icon name="bi-discord" scale="2.5"></v-icon>
+      </button>
+    </div>
   </div>
 </template>
 <style scoped>
@@ -158,5 +164,43 @@ function sendSettings() {
 
 #startButton {
   border: solid 4px var(--color-accent);
+}
+
+.discord {
+  position: absolute;
+  right: 1em;
+  bottom: 1em;
+
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  color: white;
+}
+
+.discord * {
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
+}
+
+/* fixes button height being weird
+  thanks https://stackoverflow.com/a/67305216 ! */
+.discord svg {
+  display: block;
+}
+
+.discord > button {
+  background: none;
+  border: none;
+  color: inherit;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.discord > button:hover {
+  color: var(--discord-blurple);
+  transform: scale(1.2);
+  cursor: pointer;
 }
 </style>

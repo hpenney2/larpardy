@@ -7,7 +7,7 @@ import { discordSdk, setupPromise } from "./discord.ts";
 import { socket } from "./socket.ts";
 import { Common } from "@discord/embedded-app-sdk";
 import { addIcons, OhVueIcon } from "oh-vue-icons";
-import { BiCheckLg, BiQuestionCircleFill, BiXLg } from "oh-vue-icons/icons";
+import { BiCheckLg, BiDiscord, BiQuestionCircleFill, BiXLg } from "oh-vue-icons/icons";
 
 function mountError(err: unknown) {
   createApp(AuthFail, { err }).mount("#app");
@@ -26,7 +26,7 @@ async function main() {
 
   const app = createApp(App);
 
-  addIcons(BiQuestionCircleFill, BiCheckLg, BiXLg);
+  addIcons(BiQuestionCircleFill, BiCheckLg, BiXLg, BiDiscord);
   app.component("v-icon", OhVueIcon);
 
   app.mount("#app");
