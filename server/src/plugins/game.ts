@@ -1,6 +1,7 @@
 import { BUZZ_DELAY, StateType, type GameState } from "@larpardy/shared/state";
 import { Sounds } from "@larpardy/shared/sounds";
 import type { FastifyInstance } from "fastify";
+import { TimerType } from "../StateManager.js";
 
 // time to wait for state update ack in milliseconds
 const STATE_UPDATE_TIMEOUT = 5000;
@@ -101,6 +102,43 @@ export default async function routes(
 
     function broadcastAlert(text: string) {
       io.to(instance).emit("showAlert", text);
+    }
+
+    // If none of the players have connected back yet and rejoined the room, and the game state already exists, this instance has restarted.
+    async function isRestart() {
+      const players = await fastify.state.getPlayers(instance);
+      return (
+        (await io.in(instance).fetchSockets()).filter((sock) =>
+          players.includes(sock.data.discord.id),
+        ).length === 0 && (await fastify.state.gameExists(instance))
+      );
+    }
+
+    async function timerSelectClue(cat: number, clue: number) {
+      await fastify.state.setClueRevealed(instance, cat, clue);
+      await fastify.state.setStateType(instance, StateType.AnsweringClue);
+      await fastify.state.setCanBuzzInAt(instance, Date.now() + BUZZ_DELAY); // can buzz in after BUZZ_DELAY
+      await fastify.state.clearTimer(instance, TimerType.SelectClue);
+      await sendCurrentState();
+    }
+
+    async function setTimerSelectClue(cat: number, clue: number) {
+      timeouts.push(
+        setTimeout(async () => await timerSelectClue(cat, clue), 1500),
+      );
+    }
+
+    async function timerReturnToBoard() {
+      await fastify.state.resetAlreadyBuzzed(instance);
+      await fastify.state.unselectClue(instance);
+      await fastify.state.setStateType(instance, StateType.SelectClue);
+      await checkGameEnd();
+      await fastify.state.clearTimer(instance, TimerType.ReturnToBoard);
+      await sendCurrentState();
+    }
+
+    async function setTimerReturnToBoard() {
+      timeouts.push(setTimeout(async () => await timerReturnToBoard(), 3000));
     }
 
     socket.on("disconnect", (reason) => {
@@ -292,22 +330,8 @@ export default async function routes(
         await fastify.state.selectClue(instance, cat, clue);
         await sendCurrentState();
 
-        // TODO: having server-side timeouts like this could reaaally cause issues on restart
-        // because this isn't in Redis and will be LOST.
-        // how can we make this work when the server restarts?
-        // either store timeouts by some kind of repeatable type in Redis, or make sure they *finish* before a restart
-        // maybe even wait for games to finish before finishing a restart?
-        timeouts.push(
-          setTimeout(async () => {
-            await fastify.state.setClueRevealed(instance, cat, clue);
-            await fastify.state.setStateType(instance, StateType.AnsweringClue);
-            await fastify.state.setCanBuzzInAt(
-              instance,
-              Date.now() + BUZZ_DELAY,
-            ); // can buzz in after BUZZ_DELAY
-            await sendCurrentState();
-          }, 1500),
-        );
+        await fastify.state.setTimer(instance, TimerType.SelectClue);
+        await setTimerSelectClue(cat, clue);
       }
     });
 
@@ -388,15 +412,9 @@ export default async function routes(
         await fastify.state.setBuzzedPlayer(instance, "");
         await sendCurrentState();
         io.to(instance).emit("playSound", Sounds.Correct);
-        timeouts.push(
-          setTimeout(async () => {
-            await fastify.state.resetAlreadyBuzzed(instance);
-            await fastify.state.unselectClue(instance);
-            await fastify.state.setStateType(instance, StateType.SelectClue);
-            await checkGameEnd();
-            await sendCurrentState();
-          }, 3000),
-        );
+
+        await fastify.state.setTimer(instance, TimerType.ReturnToBoard);
+        await setTimerReturnToBoard();
       }
     });
 
@@ -421,7 +439,6 @@ export default async function routes(
         await fastify.state.addToAlreadyBuzzed(instance, state.buzzedPlayer);
         await fastify.state.setBuzzedPlayer(instance, "");
 
-        console.log();
         if (
           state.settings.isHostless ||
           (state.alreadyBuzzed?.length ?? 0) >= state.players.length - 2 // minus 2 because minus the incorrect player and minus the host
@@ -433,15 +450,8 @@ export default async function routes(
           );
           await sendCurrentState();
 
-          timeouts.push(
-            setTimeout(async () => {
-              await fastify.state.unselectClue(instance);
-              await fastify.state.resetAlreadyBuzzed(instance);
-              await fastify.state.setStateType(instance, StateType.SelectClue);
-              await checkGameEnd();
-              await sendCurrentState();
-            }, 3000),
-          );
+          await fastify.state.setTimer(instance, TimerType.ReturnToBoard);
+          await setTimerReturnToBoard();
         } else {
           await fastify.state.setStateType(instance, StateType.AnsweringClue);
           await sendCurrentState();
@@ -479,15 +489,8 @@ export default async function routes(
 
         io.to(instance).emit("playSound", Sounds.Incorrect);
 
-        timeouts.push(
-          setTimeout(async () => {
-            await fastify.state.unselectClue(instance);
-            await fastify.state.resetAlreadyBuzzed(instance);
-            await fastify.state.setStateType(instance, StateType.SelectClue);
-            await checkGameEnd();
-            await sendCurrentState();
-          }, 3000),
-        );
+        await fastify.state.setTimer(instance, TimerType.ReturnToBoard);
+        await setTimerReturnToBoard();
       }
     });
 
@@ -499,6 +502,29 @@ export default async function routes(
         await sendCurrentState();
       }
     });
+
+    // check if this is a restart
+    if (await isRestart()) {
+      const timers = await fastify.state.getTimers(instance);
+      console.log(
+        `instance ${instance} appears to be a restart! timers are being ran now (${timers})`,
+      );
+      for (const timer of timers) {
+        switch (timer) {
+          case TimerType.SelectClue:
+            const state = await fastify.state.getState(instance);
+
+            // clue must be selected before timer starts
+            await timerSelectClue(
+              state.currentlyAnsweringCategory!,
+              state.currentlyAnsweringClue!,
+            );
+            break;
+          case TimerType.ReturnToBoard:
+            await timerReturnToBoard();
+        }
+      }
+    }
 
     // kick out clients that don't fully connect in 1 minute
     setTimeout(() => {

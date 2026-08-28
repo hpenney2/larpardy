@@ -24,6 +24,12 @@ const enum KeyTypes {
   SCORE = "score",
   SETTINGS = "settings",
   ALREADYBUZZED = "alreadyBuzzed",
+  TIMERS = "timers",
+}
+
+export enum TimerType {
+  SelectClue,
+  ReturnToBoard,
 }
 
 /** r(edis) key */
@@ -339,6 +345,48 @@ export class StateManager {
       const players = playersT[1] as string[];
       const activePlayer = activeT[1] as string;
     }
+  }
+
+  async getTimers(instance: string) {
+    const bitfield = await this.redis.bitfield(
+      gkey(instance, KeyTypes.TIMERS),
+      "GET",
+      "u32",
+      0,
+    );
+
+    const timers: TimerType[] = [];
+
+    if (Array.isArray(bitfield)) {
+      const flags: number | undefined = bitfield[0];
+      if (flags !== undefined) {
+        for (const id of Object.values(TimerType).filter(
+          (val) => typeof val === "number",
+        )) {
+          // oh boy i love JavaScript jank!
+          // >>> is *unsigned* right bit shift.
+          // & will return a signed 32-bit integer.
+          // using >>> again gets us back to unsigned.
+          if ((flags & ((2 ** 31) >>> id)) >>> 0) {
+            timers.push(id);
+          }
+        }
+      }
+    }
+
+    return timers;
+  }
+
+  async setTimer(instance: string, timer: TimerType) {
+    return this.redis.setbit(gkey(instance, KeyTypes.TIMERS), timer, 1);
+  }
+
+  async clearTimer(instance: string, timer: TimerType) {
+    return this.redis.setbit(gkey(instance, KeyTypes.TIMERS), timer, 0);
+  }
+
+  async gameExists(instance: string) {
+    return (await this.redis.exists(gkey(instance))) > 0;
   }
 
   async getState(instance: string): Promise<GameState> {
