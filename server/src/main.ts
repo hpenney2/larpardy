@@ -34,6 +34,7 @@ const EXPECTED_ENV = [
   "DISCORD_CLIENT_SECRET",
   "DISCORD_BOT_TOKEN",
   "REDIS_URL",
+  "REDIS_PASS",
 ];
 
 const _MISSING_ENV = EXPECTED_ENV.filter((val) => !(val in process.env));
@@ -45,7 +46,10 @@ if (_MISSING_ENV.length > 0) {
   process.exit(1);
 }
 
-await fastify.register(fastifyRedis, { url: process.env.REDIS_URL });
+await fastify.register(fastifyRedis, {
+  url: process.env.REDIS_URL,
+  password: process.env.REDIS_PASS,
+});
 await fastify.register(statePlugin);
 
 fastify.register(cluePlugin, { path: path.join(__dirname, "..", "clue.db") });

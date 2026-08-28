@@ -6,6 +6,7 @@ declare global {
       DISCORD_CLIENT_SECRET: string;
       DISCORD_BOT_TOKEN: string;
       REDIS_URL: string;
+      REDIS_PASS: string;
     }
   }
 }
