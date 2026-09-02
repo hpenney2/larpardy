@@ -77,7 +77,10 @@ export default async function routes(
                 : playerState,
               (err) => {
                 if (err) {
-                  console.warn("ack error updating state (timeout):", err);
+                  console.warn(
+                    `ack error updating state for ${instance} (timeout):`,
+                    err,
+                  );
                   if (retries > 1) {
                     sendCurrentState(retries - 1); // in case the state we had is stale now
                   } else {
@@ -93,7 +96,14 @@ export default async function routes(
     }
 
     async function sendCurrentState(retries: number = STATE_UPDATE_RETRIES) {
-      stateUpdated(await fastify.state.getState(instance), retries);
+      try {
+        stateUpdated(await fastify.state.getState(instance), retries);
+      } catch (err) {
+        console.warn(
+          `error getting & updating latest game state for ${instance}:`,
+          err,
+        );
+      }
     }
 
     function sendAlert(text: string) {
@@ -302,8 +312,12 @@ export default async function routes(
     socket.on("startGame", async () => {
       const state = await fastify.state.getState(instance);
       if (state.host === id && state.isReadyForNext) {
-        await fastify.state.startGame(instance);
-        await sendCurrentState();
+        try {
+          await fastify.state.startGame(instance);
+          await sendCurrentState();
+        } catch (err) {
+          console.warn(`error starting game for ${instance}:`, err);
+        }
       }
     });
 

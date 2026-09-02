@@ -209,7 +209,7 @@ export class StateManager {
 
     if (!startingPlayer) {
       throw new Error(
-        `trying to start game, but no players the game? (${instance}`,
+        `trying to start game, but no players are in the game? (${instance})`,
       );
     }
 
