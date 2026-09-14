@@ -157,7 +157,7 @@ export default async function routes(
 
     socket.onAny((event, ...value) => {
       if (event === "ping") return;
-      console.debug(`[socket ${id}] >> ${event}`, value);
+      console.debug(`[socket ${id} (${instance})] >> ${event}`, value);
     });
 
     // ping and sync time
@@ -183,7 +183,7 @@ export default async function routes(
         state = await fastify.state.initOrJoin(instance, id, fastify.clueDb);
       } catch (error) {
         console.error(
-          `[!!!] Error occured while trying to allow client (${id}) to join instance ${instance}.`,
+          `[!!!] Error occurred while trying to allow client (${id}) to join instance ${instance}.`,
           error,
         );
         socket.disconnect();
@@ -360,7 +360,7 @@ export default async function routes(
       ) {
         await fastify.state.buzz(instance, id);
         await sendCurrentState();
-        console.log(id + " buzzed in!");
+        console.log(id + " buzzed in! (" + instance + ")");
       }
     });
 
