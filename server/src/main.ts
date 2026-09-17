@@ -21,6 +21,7 @@ import {
 } from "discord-api-types/v10";
 import { Client, Events } from "discord.js";
 import cluePlugin from "./jep.js";
+import statsPlugin from "./stats.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -37,6 +38,8 @@ const EXPECTED_ENV = [
   "REDIS_PASS",
 ];
 
+const OPTIONAL_ENV_INFLUX = ["INFLUX_HOST", "INFLUX_DATABASE", "INFLUX_TOKEN"];
+
 const _MISSING_ENV = EXPECTED_ENV.filter((val) => !(val in process.env));
 if (_MISSING_ENV.length > 0) {
   console.error(
@@ -44,6 +47,28 @@ if (_MISSING_ENV.length > 0) {
     _MISSING_ENV.join(", "),
   );
   process.exit(1);
+}
+
+const _MISSING_ENV_INFLUX = OPTIONAL_ENV_INFLUX.filter(
+  (val) => !(val in process.env),
+);
+const INFLUX_ENABLED = _MISSING_ENV_INFLUX.length == 0;
+if (!INFLUX_ENABLED) {
+  console.warn(
+    "[!] Some environment variables for InfluxDB are missing. Statistics will not be written.",
+    _MISSING_ENV_INFLUX.join(", "),
+  );
+
+  fastify.register(statsPlugin, {
+    enabled: false,
+  });
+} else {
+  fastify.register(statsPlugin, {
+    enabled: true,
+    influxHost: process.env.INFLUX_HOST,
+    influxDatabase: process.env.INFLUX_DATABASE,
+    influxToken: process.env.INFLUX_TOKEN,
+  });
 }
 
 await fastify.register(fastifyRedis, {

@@ -2,6 +2,7 @@ import { BUZZ_DELAY, StateType, type GameState } from "@larpardy/shared/state";
 import { Sounds } from "@larpardy/shared/sounds";
 import type { FastifyInstance } from "fastify";
 import { TimerType } from "../StateManager.js";
+import { Point } from "@influxdata/influxdb3-client";
 
 // time to wait for state update ack in milliseconds
 const STATE_UPDATE_TIMEOUT = 5000;
@@ -32,6 +33,7 @@ export default async function routes(
 ) {
   const io = fastify.socketIO;
   const timeouts: NodeJS.Timeout[] = [];
+  const stats = fastify.stats;
 
   async function socketFromId(user: string) {
     return (await io.fetchSockets())
@@ -153,6 +155,14 @@ export default async function routes(
 
     socket.on("disconnect", (reason) => {
       console.log("user disconnected :(", id, reason);
+
+      stats.write(
+        Point.measurement("player")
+          .setField("user", id)
+          .setField("joining", false)
+          .setField("instance", instance),
+      );
+      stats.update();
     });
 
     socket.onAny((event, ...value) => {
@@ -268,6 +278,15 @@ export default async function routes(
       console.log(socket.rooms);
       stateUpdated(state);
 
+      stats.write(
+        Point.measurement("player")
+          .setField("user", id)
+          .setField("joining", true)
+          .setField("instance", instance),
+      );
+
+      stats.update();
+
       isReady = true;
       isReadying = false;
     });
@@ -315,6 +334,14 @@ export default async function routes(
         try {
           await fastify.state.startGame(instance);
           await sendCurrentState();
+
+          stats.write(
+            Point.measurement("state_update")
+              .setTag("state", "GameStart")
+              .setField("instance", instance)
+              .setUintegerField("players", state.players.length)
+              .setBooleanField("hostless", state.settings.isHostless),
+          );
         } catch (err) {
           console.warn(`error starting game for ${instance}:`, err);
         }
@@ -398,6 +425,12 @@ export default async function routes(
 
       if (gameShouldEnd) {
         await fastify.state.setStateType(instance, StateType.GameOver);
+        stats.write(
+          Point.measurement("state_update")
+            .setTag("state", "GameOver")
+            .setField("instance", instance)
+            .setUintegerField("players", state.players.length),
+        );
       }
 
       return gameShouldEnd;

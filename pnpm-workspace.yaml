@@ -4,6 +4,7 @@ packages:
   - "shared"
 allowBuilds:
   esbuild: true
+  protobufjs: true
   vue-demi: true
 syncInjectedDepsAfterScripts:
   - build

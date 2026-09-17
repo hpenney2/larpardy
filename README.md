@@ -59,6 +59,11 @@ REDIS_PASS=SOMETHINGSUPERSECURE123
 
 # If running locally, keep this, or change it to where your server actually is.
 REDIS_URL=redis://localhost
+
+# If using it, configure InfluxDB for statistics tracking.
+# INFLUX_HOST=http://influxdb.example.com/
+# INFLUX_DATABASE=larpardy
+# INFLUX_TOKEN=
 ```
 
 You also need to add a `clue.db` SQLite database to the `server/` directory, which currently is based on [jepp](https://github.com/ecshreve/jepp)'s database format.
