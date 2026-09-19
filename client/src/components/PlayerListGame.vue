@@ -14,6 +14,7 @@ defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: st
         :speaking="usersTalking.has(user.id)"
         :active="activePlayer === user.id"
         :points="gameState.state?.score[user.id]"
+        :host="gameState.state?.host === user.id"
         v-if="
           gameState.state?.players.includes(user.id) &&
           (gameState.state.settings.isHostless || user.id !== gameState.state.host)

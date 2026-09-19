@@ -8,6 +8,7 @@ const { points = 0 } = defineProps<{
   loading?: boolean;
   points?: number;
   active?: boolean;
+  host?: boolean;
 }>();
 </script>
 
@@ -26,6 +27,7 @@ const { points = 0 } = defineProps<{
     <p :class="{ badMoney: points < 0 }">
       {{ points >= 0 ? "" : "-" }}${{ (points >= 0 ? points : -points).toLocaleString() }}
     </p>
+    <p class="hostNotice" v-if="host">(host)</p>
   </div>
 </template>
 
@@ -42,6 +44,8 @@ const { points = 0 } = defineProps<{
   background-color: #000000aa;
   padding: 1.5vh;
   border-radius: 5%;
+
+  position: relative;
 
   font-size: 1.5vh;
 
@@ -71,5 +75,13 @@ const { points = 0 } = defineProps<{
 
 .badMoney {
   color: red;
+}
+
+.hostNotice {
+  position: absolute;
+  opacity: 50%;
+  bottom: -7.5%;
+  /* left: 0; */
+  font-size: 0.75em;
 }
 </style>
