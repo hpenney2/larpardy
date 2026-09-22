@@ -5,7 +5,7 @@ import TitleHeader from "./TitleHeader.vue";
 import { auth as discordAuth, discordSdk } from "@/discord.ts";
 import { socket, gameState } from "@/socket.ts";
 import ToggleSwitch from "./ToggleSwitch.vue";
-import { computed } from "vue";
+import { computed, ref, watchEffect } from "vue";
 import HoverTooltip from "./HoverTooltip.vue";
 
 defineProps<{
@@ -34,6 +34,11 @@ function sendSettings() {
     socket.emit("updateSettings", gameState.state!.settings);
   }
 }
+
+const isTransferringHost = ref(false);
+watchEffect(() => {
+  if (!isHost.value) isTransferringHost.value = false;
+});
 </script>
 <template>
   <TitleHeader></TitleHeader>
@@ -45,7 +50,14 @@ function sendSettings() {
       <div
         v-for="user in users?.participants"
         :key="user.id"
-        :class="{ playerReady: gameState.state?.readyForNextState.includes(user.id) }"
+        :class="{
+          playerReady: gameState.state?.readyForNextState.includes(user.id),
+          transferHint:
+            isTransferringHost &&
+            gameState.state?.host !== user.id &&
+            gameState.state?.players.includes(user.id),
+        }"
+        @click="if (isTransferringHost) socket.emit('changeHost', user.id);"
       >
         <p>
           {{ user.nickname ?? user.global_name }}
@@ -85,6 +97,14 @@ function sendSettings() {
           title="Allows the game host to play, but only one person can buzz in per question."
         ></HoverTooltip
       ></ToggleSwitch>
+      <button
+        class="button"
+        @click="isTransferringHost = !isTransferringHost"
+        v-if="isHost && (isTransferringHost || (gameState.state?.players.length ?? 0) > 1)"
+        :class="{ highlighted: isTransferringHost }"
+      >
+        {{ isTransferringHost ? "Cancel Host Transfer" : "Transfer Host" }}
+      </button>
     </div>
     <div class="discord">
       <span>Join our server!</span>
@@ -156,6 +176,15 @@ function sendSettings() {
   margin: 1em 0;
 }
 
+.transferHint {
+  border: 2px yellow dashed;
+  background-color: rgba(255, 255, 0, 50%);
+  padding-left: 1em;
+  padding-right: 1em;
+
+  cursor: pointer;
+}
+
 .buttons {
   display: flex;
   margin: 1em;
@@ -164,6 +193,10 @@ function sendSettings() {
 
 #startButton {
   border: solid 4px var(--color-accent);
+}
+
+.settings > * + * {
+  margin-top: 1em;
 }
 
 .discord {

@@ -328,6 +328,14 @@ export default async function routes(
       }
     });
 
+    socket.on("changeHost", async (newHost) => {
+      const state = await fastify.state.getState(instance);
+      if (state.host === id && state.players.includes(newHost)) {
+        await fastify.state.setHostPlayer(instance, newHost);
+        await sendCurrentState();
+      }
+    });
+
     socket.on("startGame", async () => {
       const state = await fastify.state.getState(instance);
       if (state.host === id && state.isReadyForNext) {

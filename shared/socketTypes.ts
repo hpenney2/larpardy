@@ -15,6 +15,7 @@ export interface ClientToServerEvents {
   ready: () => void;
 
   updateSettings: (settings: Settings) => void;
+  changeHost: (newHost: string) => void;
   readyForNext: (current: StateType) => void;
   unreadyForNext: () => void;
   startGame: () => void;
