@@ -110,7 +110,7 @@ The logo and user interface use the [Liberation Fonts](https://github.com/libera
 
 The live version of the game uses [jepp](https://github.com/ecshreve/jepp)'s public clue SQL database dump.
 
-Icons used sparsely throughout the game are provided by [Oh, Vue Icons!](https://oh-vue-icons.js.org/) and primarily use the [Bootstrap Icons](https://icons.getbootstrap.com/).
+Icons used sparsely throughout the game are provided by [Oh, Vue Icons!](https://oh-vue-icons.js.org/) and primarily use the [Bootstrap Icons](https://icons.getbootstrap.com/) and [Game Icons](https://game-icons.net/).
 
 This project wouldn't be possible without [all of the libraries and tech that it's based on](#stack).
 

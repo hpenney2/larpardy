@@ -2,6 +2,8 @@
 import type { DiscordUsers } from "@/shared";
 import PlayerCard from "./PlayerCard.vue";
 import { gameState } from "@/socket.ts";
+import GameMenu from "./GameMenu.vue";
+import { auth } from "@/discord.ts";
 
 defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: string }>();
 </script>
@@ -21,6 +23,7 @@ defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: st
         "
       ></PlayerCard>
     </template>
+    <GameMenu v-if="gameState.state?.host === auth.user.id"></GameMenu>
   </div>
 </template>
 
@@ -34,5 +37,7 @@ defineProps<{ users?: DiscordUsers; usersTalking: Set<string>; activePlayer?: st
   width: 100%;
   height: 100%;
   gap: 1em;
+
+  position: relative;
 }
 </style>

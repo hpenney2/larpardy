@@ -220,7 +220,10 @@ export default async function routes(
           fastify.state
             .leavePlayer(instance, id)
             .then(() => fastify.state.getState(instance))
-            .then((state) => {
+            .then((state) =>
+              Promise.all([state, io.in(instance).fetchSockets()]),
+            )
+            .then(([state, sockets]) => {
               if (
                 (state.players.length <= 0 ||
                   (state.state > StateType.Lobby &&
@@ -247,8 +250,8 @@ export default async function routes(
                   .resetInstance(
                     instance,
                     fastify.clueDb,
-                    false,
                     clientSocket.data.discord.id,
+                    sockets.map((client) => client.data.discord.id),
                   )
                   .then(() => true);
               } else if (!state.players.includes(state.host)) {
@@ -556,9 +559,23 @@ export default async function routes(
     socket.on("returnToLobby", async () => {
       const state = await fastify.state.getState(instance);
 
-      if (state.host === id && state.state === StateType.GameOver) {
-        await fastify.state.resetInstance(instance, fastify.clueDb, true);
+      if (state.host === id && state.state !== StateType.Lobby) {
+        for (const timeout of timeouts) {
+          clearTimeout(timeout);
+        }
+        await fastify.state.resetInstance(
+          instance,
+          fastify.clueDb,
+          undefined,
+          (await io.in(instance).fetchSockets()).map(
+            (client) => client.data.discord.id,
+          ),
+        );
         await sendCurrentState();
+
+        if (state.state !== StateType.GameOver) {
+          broadcastAlert("The host has ended the game.");
+        }
       }
     });
 

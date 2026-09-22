@@ -502,8 +502,8 @@ export class StateManager {
   async resetInstance(
     instance: string,
     clueDb: ClueDatabase,
-    keepPlayers: boolean,
     newHost?: string,
+    keepPlayers?: string[],
   ) {
     if (!keepPlayers && !newHost) {
       throw Error(
@@ -511,13 +511,12 @@ export class StateManager {
       );
     }
 
-    const players = keepPlayers ? await this.getPlayers(instance) : null;
     const existingHost = await this.getHostPlayer(instance);
     await this.dropInstance(instance); // is this necessary?
     await this.initGame(instance, newHost ?? existingHost, clueDb);
 
     if (keepPlayers) {
-      for (const player of players!) {
+      for (const player of keepPlayers) {
         await this.joinPlayer(instance, player);
       }
     }
