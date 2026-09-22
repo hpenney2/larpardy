@@ -233,6 +233,10 @@ export default async function routes(
                   "All players have left. The game will now reset.",
                 );
 
+                for (const timeout of timeouts) {
+                  clearTimeout(timeout);
+                }
+
                 const clientSocket = io.sockets.sockets.get(
                   [...clients].filter((x) => x !== socket.id)[0]!,
                 );
