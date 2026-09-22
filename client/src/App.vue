@@ -41,6 +41,7 @@ discordSdk.subscribe(
   { channel_id: discordSdk.channelId },
 );
 
+const timestampStarted = Date.now();
 watchEffect(() => {
   if (gameState.state == null || users.value == null) return;
 
@@ -57,6 +58,7 @@ watchEffect(() => {
       },
       details: StateFriendlyNames[gameState.state.state],
       state: gameState.state.host === auth.user.id ? "Hosting" : "Playing",
+      timestamps: { start: timestampStarted },
     },
   });
 });
