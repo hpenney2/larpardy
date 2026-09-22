@@ -223,9 +223,9 @@ export default async function routes(
             .then((state) => {
               if (
                 (state.players.length <= 0 ||
-                  (!state.settings.isHostless &&
-                    state.players.length === 1 &&
-                    state.players[0] === state.host)) &&
+                  (state.state > StateType.Lobby &&
+                    !state.settings.isHostless &&
+                    state.players.length === 1)) &&
                 clients &&
                 clients.size > 0
               ) {
