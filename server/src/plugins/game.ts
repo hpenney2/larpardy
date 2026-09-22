@@ -189,8 +189,13 @@ export default async function routes(
       console.log("readying client", id);
 
       let state: GameState;
+      let joined: boolean;
       try {
-        state = await fastify.state.initOrJoin(instance, id, fastify.clueDb);
+        [state, joined] = await fastify.state.initOrJoin(
+          instance,
+          id,
+          fastify.clueDb,
+        );
       } catch (error) {
         console.error(
           `[!!!] Error occurred while trying to allow client (${id}) to join instance ${instance}.`,
@@ -198,6 +203,10 @@ export default async function routes(
         );
         socket.disconnect();
         return;
+      }
+
+      if (!joined) {
+        sendAlert("The game has already started, so you are spectating.");
       }
 
       socket.on("disconnecting", () => {
@@ -289,6 +298,7 @@ export default async function routes(
         Point.measurement("player")
           .setField("user", id)
           .setField("joining", true)
+          .setField("spectating", !joined)
           .setField("instance", instance),
       );
 

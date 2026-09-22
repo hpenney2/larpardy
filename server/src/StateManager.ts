@@ -478,15 +478,22 @@ export class StateManager {
     return this.getState(instance);
   }
 
-  async initOrJoin(instance: string, userId: string, clueDb: ClueDatabase) {
+  async initOrJoin(
+    instance: string,
+    userId: string,
+    clueDb: ClueDatabase,
+  ): Promise<[state: GameState, joined: boolean]> {
     const game = rkey(KeyTypes.GAME, instance);
     if (await this.redis.exists(game)) {
-      if ((await this.getStateType(instance)) <= StateType.Lobby)
+      let joined = (await this.getPlayers(instance)).includes(userId);
+      if ((await this.getStateType(instance)) <= StateType.Lobby) {
         await this.joinPlayer(instance, userId);
+        joined = true;
+      }
 
-      return await this.getState(instance);
+      return [await this.getState(instance), joined];
     } else {
-      return await this.initGame(instance, userId, clueDb);
+      return [await this.initGame(instance, userId, clueDb), true];
     }
   }
 
