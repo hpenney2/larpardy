@@ -43,7 +43,7 @@ const { points = 0 } = defineProps<{
   justify-content: center;
   background-color: #000000aa;
   padding: 1.5vh;
-  border-radius: 5%;
+  border-radius: 10px;
 
   position: relative;
 

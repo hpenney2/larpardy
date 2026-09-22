@@ -79,7 +79,7 @@ function giveUp() {
 
 .hostButton {
   background-color: rgb(from var(--color-accent3) r g b / 0.5);
-  border-radius: 5%;
+  border-radius: 10px;
 
   min-width: 12.5em;
   margin-top: 2em;
