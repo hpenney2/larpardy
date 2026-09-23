@@ -6,6 +6,7 @@ import fastifyAutoload from "@fastify/autoload";
 import fastifySocketIO from "./io.js";
 import fastifyStatic from "@fastify/static";
 import fastifyRedis from "@fastify/redis";
+import fastifyPostgres from "@fastify/postgres";
 import statePlugin from "./StateManager.js";
 
 import { REST } from "@discordjs/rest";
@@ -22,6 +23,7 @@ import {
 import { Client, Events } from "discord.js";
 import cluePlugin from "./jep.js";
 import statsPlugin from "./stats.js";
+import databasePlugin from "./Database.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -36,6 +38,10 @@ const EXPECTED_ENV = [
   "DISCORD_BOT_TOKEN",
   "REDIS_URL",
   "REDIS_PASS",
+  "POSTGRES_USER",
+  "POSTGRES_PASSWORD",
+  "POSTGRES_HOST",
+  "HOSTER_ID",
 ];
 
 const OPTIONAL_ENV_INFLUX = ["INFLUX_HOST", "INFLUX_DATABASE", "INFLUX_TOKEN"];
@@ -70,6 +76,22 @@ if (!INFLUX_ENABLED) {
     influxToken: process.env.INFLUX_TOKEN,
   });
 }
+
+await fastify.register(fastifyPostgres, {
+  host: process.env.POSTGRES_HOST,
+  user: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  application_name: "LARPARDYServer",
+});
+
+try {
+  (await fastify.pg.connect()).release();
+} catch (err) {
+  console.error("[!] Failed to connect to PostgreSQL.", err);
+  process.exit(1);
+}
+
+await fastify.register(databasePlugin);
 
 await fastify.register(fastifyRedis, {
   url: process.env.REDIS_URL,
