@@ -14,7 +14,7 @@ services:
       - ".env"
     environment:
       - REDIS_URL=redis://redis
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
     ports:
       - "3001:3001"
     restart: unless-stopped
@@ -30,6 +30,8 @@ services:
 
   postgres:
     image: postgres:18
+    profiles:
+      - dev
     volumes:
       - larpardy-postgres-data:/var/lib/postgresql
     environment:
@@ -43,4 +45,4 @@ volumes:
   redis-data:
     driver: local
   larpardy-postgres-data:
-    external: true
+    driver: local

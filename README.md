@@ -82,7 +82,7 @@ You also need to add a `clue.db` SQLite database to the `server/` directory, whi
 Start the services by running
 
 ```
-docker compose up -d
+docker compose --profile dev up -d
 ```
 
 then
