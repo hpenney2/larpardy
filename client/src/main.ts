@@ -11,6 +11,7 @@ import {
   BiCheckLg,
   BiDiscord,
   BiQuestionCircleFill,
+  BiSearch,
   BiXLg,
   GiHamburgerMenu,
 } from "oh-vue-icons/icons";
@@ -32,7 +33,7 @@ async function main() {
 
   const app = createApp(App);
 
-  addIcons(BiQuestionCircleFill, BiCheckLg, BiXLg, BiDiscord, GiHamburgerMenu);
+  addIcons(BiQuestionCircleFill, BiCheckLg, BiXLg, BiDiscord, GiHamburgerMenu, BiSearch);
   app.component("v-icon", OhVueIcon);
 
   app.mount("#app");

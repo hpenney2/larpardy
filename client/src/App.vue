@@ -11,6 +11,7 @@ import GameBoard from "./components/GameBoard.vue";
 import AlertModal from "./components/AlertModal.vue";
 import { Sounds } from "@larpardy/shared/sounds";
 import GameEnd from "./components/GameEnd.vue";
+import BoardEditor from "./components/BoardEditor.vue";
 
 const devMode = import.meta.env.DEV;
 
@@ -100,7 +101,8 @@ socket.on("playSound", (sound) => {
 <template>
   <template v-if="gameState.state != null">
     <Transition name="mainScreens">
-      <main v-if="gameState.state.state == StateType.Lobby">
+      <main v-if="gameState.inEditor"><BoardEditor></BoardEditor></main>
+      <main v-else-if="gameState.state.state == StateType.Lobby">
         <LobbyScreen :users="users" :users-talking="usersTalking"></LobbyScreen>
       </main>
       <main v-else>
@@ -117,7 +119,9 @@ socket.on("playSound", (sound) => {
   </template>
 
   <AlertModal v-if="alertText">{{ alertText }}</AlertModal>
-  <WaitModal v-if="gameState.state == null || !gameState.connected"></WaitModal>
+  <WaitModal
+    v-if="(gameState.state == null || !gameState.connected) && !gameState.inEditor"
+  ></WaitModal>
   <p id="debug" v-if="devMode">debug: {{ gameState }}</p>
 </template>
 

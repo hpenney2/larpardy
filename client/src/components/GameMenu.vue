@@ -19,7 +19,7 @@ function returnToLobby() {
   <div id="gameMenu" v-if="inMenu">
     <section role="menu">
       <h2>Menu</h2>
-      <button class="button closeButton" @click="inMenu = false">
+      <button class="button closeButton" @click="inMenu = false" aria-label="Close">
         <v-icon name="bi-x-lg" />
       </button>
       <button class="button" @click="returnToLobby">Return to Lobby / End Game</button>
@@ -52,7 +52,7 @@ function returnToLobby() {
   height: 100dvh;
   inset: 0;
   backdrop-filter: brightness(20%);
-  /* z-index: 1000; */
+  z-index: 1000;
 
   text-align: center;
   align-content: center;

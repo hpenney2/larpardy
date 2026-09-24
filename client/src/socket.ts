@@ -13,11 +13,14 @@ export const gameState = reactive<{
   state: GameState | null;
   ping: number;
   timeOffset: number;
+
+  inEditor: boolean;
 }>({
   connected: false,
   state: null,
   ping: 0,
   timeOffset: 0,
+  inEditor: false,
 });
 
 export const socket: LSocket = markRaw(

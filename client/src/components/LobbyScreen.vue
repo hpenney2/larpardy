@@ -7,6 +7,7 @@ import { socket, gameState } from "@/socket.ts";
 import ToggleSwitch from "./ToggleSwitch.vue";
 import { computed, ref, watchEffect } from "vue";
 import HoverTooltip from "./HoverTooltip.vue";
+import BoardSelectionMenu from "./BoardSelectionMenu.vue";
 
 defineProps<{
   users?: DiscordUsers;
@@ -39,6 +40,8 @@ const isTransferringHost = ref(false);
 watchEffect(() => {
   if (!isHost.value) isTransferringHost.value = false;
 });
+
+const boardMenuOpen = ref(false);
 </script>
 <template>
   <TitleHeader></TitleHeader>
@@ -89,6 +92,7 @@ watchEffect(() => {
     </div>
     <div class="settings">
       <h3>Settings</h3>
+
       <ToggleSwitch
         v-model="gameState.state!.settings.isHostless"
         :disabled="!isHost"
@@ -97,6 +101,7 @@ watchEffect(() => {
           title="Allows the game host to play, but only one person can buzz in per question."
         ></HoverTooltip
       ></ToggleSwitch>
+
       <button
         class="button"
         @click="isTransferringHost = !isTransferringHost"
@@ -105,6 +110,16 @@ watchEffect(() => {
       >
         {{ isTransferringHost ? "Cancel Host Transfer" : "Transfer Host" }}
       </button>
+
+      <hr />
+
+      <div>
+        <!-- <p>Gamemode: Standard / Random</p> -->
+        <button class="button" @click="boardMenuOpen = !boardMenuOpen">
+          Choose a Custom Board
+        </button>
+        <BoardSelectionMenu v-model="boardMenuOpen"></BoardSelectionMenu>
+      </div>
     </div>
     <div class="discord">
       <span>Join our server!</span>
@@ -122,6 +137,9 @@ watchEffect(() => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+
+  padding-top: 1em;
+  padding-bottom: 2em;
 }
 
 .lobbyScreen * {
