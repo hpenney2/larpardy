@@ -55,7 +55,7 @@ defineProps<{
 }
 
 .loading::after {
-  content: "...";
+  /* content: "..."; */
   display: block;
   align-content: center;
   position: absolute;
@@ -66,6 +66,6 @@ defineProps<{
   text-align: center;
   backdrop-filter: brightness(50%);
 
-  animation: wait 2s linear infinite;
+  /* animation: wait 2s linear infinite; */
 }
 </style>
