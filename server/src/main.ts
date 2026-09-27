@@ -143,6 +143,8 @@ fastify.socketIO.use(async (socket, next) => {
     socket.data.discord = userInfo;
     socket.data.instanceId = instanceId;
 
+    await fastify.db.addUser(userInfo.id, userInfo.username);
+
     next();
   } catch (err) {
     console.log("connect error:", err);

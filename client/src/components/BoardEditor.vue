@@ -6,12 +6,17 @@ import { computed, ref, useTemplateRef, watchEffect } from "vue";
 import type { BoardClue, GameBoard } from "@larpardy/shared/state";
 import BoardEditorQuestion from "./BoardEditorQuestion.vue";
 import BoardEditorFinish from "./BoardEditorFinish.vue";
+import type { BoardPrivacy } from "@larpardy/shared/userBoards";
 
 function leaveEditor() {
   gameState.state = null; // clear leftover state
   socket.connect();
   gameState.inEditor = false;
 }
+
+const existingId = ref<string | undefined>();
+const existingTitle = ref<string | undefined>();
+const existingPrivacy = ref<BoardPrivacy | undefined>();
 
 // board mode; lock to landscape mode
 discordSdk.commands.setOrientationLockState({
@@ -284,7 +289,12 @@ watchEffect(() => {
   <BoardEditorFinish
     v-if="finishing"
     :valid="isBoardValid"
+    :board="limitedBoard"
+    v-model:id="existingId"
+    v-model:title="existingTitle"
+    v-model:privacy="existingPrivacy"
     @return="finishing = false"
+    @backToLobby="leaveEditor"
   ></BoardEditorFinish>
 </template>
 
