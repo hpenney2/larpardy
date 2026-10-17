@@ -11,6 +11,9 @@ import {
   BiArrowLeftRight,
   BiCheckLg,
   BiDiscord,
+  BiHeart,
+  BiHeartFill,
+  BiPlayFill,
   BiQuestionCircleFill,
   BiSearch,
   BiXLg,
@@ -42,6 +45,9 @@ async function main() {
     GiHamburgerMenu,
     BiSearch,
     BiArrowLeftRight,
+    BiPlayFill,
+    BiHeart,
+    BiHeartFill,
   );
   app.component("v-icon", OhVueIcon);
 

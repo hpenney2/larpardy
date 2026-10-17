@@ -3,7 +3,14 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "@fastify/type-provider-zod";
-import { UserBoardSchema, type UserBoard } from "@larpardy/shared/userBoards";
+import {
+  type BoardSearchQuery,
+  BoardSearchQuerySchema,
+  UserBoardSchema,
+  type UserBoard,
+  SearchBoardPartialSchema,
+  SearchBoardSchema,
+} from "@larpardy/shared/userBoards";
 import { Routes, type APIUser } from "discord-api-types/v10";
 import { REST } from "discord.js";
 import type { FastifyInstance } from "fastify";
@@ -87,7 +94,7 @@ export default async function routes(
         return;
       }
 
-      const id = fastify.db.putBoard(
+      const id = await fastify.db.putBoard(
         request.body,
         discord.id,
         request.params.id,
@@ -99,6 +106,96 @@ export default async function routes(
       }
 
       return id;
+    },
+  );
+
+  fastify.get<{ Headers: AuthorizationHeader; Querystring: BoardSearchQuery }>(
+    "/api/search_boards",
+    {
+      schema: {
+        querystring: BoardSearchQuerySchema,
+        headers: AuthorizationHeaderSchema,
+        // response: {
+        //   200: SearchBoardSchema.array(),
+        // },
+      },
+    },
+    async (request, reply) => {
+      let discord;
+      try {
+        discord = await getDiscordUser(request.headers.authorization);
+      } catch (err) {
+        reply.code(401).send();
+        return;
+      }
+
+      const result = await fastify.db.search(
+        request.query.sort,
+        discord.id,
+        request.query.cursor,
+        request.query.query,
+      );
+
+      return result;
+    },
+  );
+
+  fastify.get<{
+    Headers: AuthorizationHeader;
+    Params: { id: string };
+  }>(
+    "/api/board/:id",
+    {
+      schema: {
+        headers: AuthorizationHeaderSchema,
+        // response: {
+        //   200: SearchBoardSchema,
+        // },
+      },
+    },
+    async (request, reply) => {
+      let discord;
+      try {
+        discord = await getDiscordUser(request.headers.authorization);
+      } catch (err) {
+        reply.code(401).send();
+        return;
+      }
+
+      const result = await fastify.db.getBoard(request.params.id, discord.id);
+
+      return result;
+    },
+  );
+
+  fastify.post<{
+    Body: { value: boolean };
+    Headers: AuthorizationHeader;
+    Params: { id: string };
+  }>(
+    "/api/board/:id/favorite",
+    {
+      schema: {
+        headers: AuthorizationHeaderSchema,
+        body: z.object({ value: z.boolean() }),
+      },
+    },
+    async (request, reply) => {
+      let discord;
+      try {
+        discord = await getDiscordUser(request.headers.authorization);
+      } catch (err) {
+        reply.code(401).send();
+        return;
+      }
+
+      await fastify.db.setFavorite(
+        request.params.id,
+        discord.id,
+        request.body.value,
+      );
+
+      return request.body.value;
     },
   );
 }

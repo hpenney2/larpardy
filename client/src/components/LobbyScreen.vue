@@ -8,6 +8,7 @@ import ToggleSwitch from "./ToggleSwitch.vue";
 import { computed, ref, watchEffect } from "vue";
 import HoverTooltip from "./HoverTooltip.vue";
 import BoardSelectionMenu from "./BoardSelectionMenu.vue";
+import { Common as SDKCommon } from "@discord/embedded-app-sdk";
 
 defineProps<{
   users?: DiscordUsers;
@@ -42,6 +43,22 @@ watchEffect(() => {
 });
 
 const boardMenuOpen = ref(false);
+
+watchEffect(() => {
+  if (!boardMenuOpen.value) {
+    discordSdk.commands.setOrientationLockState({
+      lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+      picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+      grid_lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+    });
+  }
+});
+
+discordSdk.commands.setOrientationLockState({
+  lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+  picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+  grid_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+});
 </script>
 <template>
   <TitleHeader></TitleHeader>

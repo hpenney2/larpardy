@@ -16,15 +16,46 @@ export const BoardDataSchema: z.ZodType<GameBoard> = z.array(
 export const BoardPrivacySchema = z.enum(["private", "unlisted", "public"]);
 
 export const UserBoardSchema = z.object({
-  title: z.string().trim().nonempty(),
+  title: z.string().trim().nonempty().max(500),
   privacy: BoardPrivacySchema,
   board: BoardDataSchema,
 });
 
-export const FullBoardSchema = UserBoardSchema.extend({
+export const SearchBoardSchema = UserBoardSchema.extend({
   id: z.uuid(),
-  created: z.date(),
+  author: z.string().nonempty(),
+  owned: z.boolean(),
+  created: z.date().transform((date) => date.toISOString()),
+  edited: z.date().transform((date) => date.toISOString()),
+  restricted: z
+    .date()
+    .transform((date) => date.toISOString())
+    .nullable(),
+  plays: z.int().min(0),
+  favorites: z.int().min(0),
+  favorited: z.boolean(),
+});
+
+export const SearchBoardPartialSchema = SearchBoardSchema.omit({ board: true });
+
+export const BoardSearchSortSchema = z.enum([
+  "plays",
+  "favorites",
+  "my_favorites",
+  "my_boards",
+  "relevance",
+]);
+
+export const BoardSearchQuerySchema = z.object({
+  query: z.string().trim().optional(),
+  sort: BoardSearchSortSchema,
+  cursor: z.base64().optional(),
 });
 
 export type BoardPrivacy = z.infer<typeof BoardPrivacySchema>;
 export type UserBoard = z.infer<typeof UserBoardSchema>;
+export type SearchBoard = z.infer<typeof SearchBoardSchema>;
+export type SearchBoardPartial = z.infer<typeof SearchBoardPartialSchema>;
+
+export type BoardSearchSort = z.infer<typeof BoardSearchSortSchema>;
+export type BoardSearchQuery = z.infer<typeof BoardSearchQuerySchema>;

@@ -10,3 +10,7 @@ export type DiscordUsers = Awaited<
 export type DiscordUser = Awaited<
   ReturnType<typeof discordSdk.commands.getInstanceConnectedParticipants>
 >["participants"][0];
+
+export function pluralize(suffix: string, num: number) {
+  return num != 1 ? suffix : "";
+}
