@@ -135,6 +135,16 @@ discordSdk.commands.setOrientationLockState({
         <button class="button" @click="boardMenuOpen = !boardMenuOpen">
           Choose a Custom Board
         </button>
+        <p v-if="gameState.state?.customId">
+          Selected:
+          <br />
+          <cite>{{ gameState.state.customTitle }}</cite>
+          <br />
+          by <cite>@{{ gameState.state.customAuthor }}</cite>
+        </p>
+        <button class="button" v-if="gameState.state?.customId" @click="socket.emit('resetBoard')">
+          Reset
+        </button>
         <BoardSelectionMenu v-model="boardMenuOpen"></BoardSelectionMenu>
       </div>
     </div>
@@ -228,6 +238,11 @@ discordSdk.commands.setOrientationLockState({
 
 #startButton {
   border: solid 4px var(--color-accent);
+}
+
+.settings * {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .settings > * + * {

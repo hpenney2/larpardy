@@ -90,6 +90,11 @@ watch([searchText], () => {
   if (searchText.value) sortMethod.value = "relevance";
   else sortMethod.value = "plays";
 });
+
+function selectBoard(id: string) {
+  socket.emit("selectCustomBoard", id);
+  menuOpen.value = false;
+}
 </script>
 
 <template>
@@ -165,7 +170,11 @@ watch([searchText], () => {
                 ►
               </button>
             </div>
-            <BoardSelectList v-if="searchResults!.length > 0" :results="searchResults!" />
+            <BoardSelectList
+              v-if="searchResults!.length > 0"
+              :results="searchResults!"
+              @selected="selectBoard($event)"
+            />
             <p v-else>Sorry, no results found.</p>
 
             <template #error>

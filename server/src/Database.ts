@@ -2,6 +2,7 @@ import type { GameBoard } from "@larpardy/shared/state";
 import type {
   BoardPrivacy,
   BoardSearchSort,
+  SearchBoard,
   SearchBoardPartial,
   UserBoard,
 } from "@larpardy/shared/userBoards";
@@ -171,7 +172,7 @@ class Database {
         `,
         [id, forUser],
       )
-    ).rows[0] as GameBoard | undefined;
+    ).rows[0] as SearchBoard | undefined;
   }
 
   public async setFavorite(board: string, user: string, value: boolean) {

@@ -55,6 +55,10 @@ export interface GameState {
   settings: Settings;
 
   board: GameBoard;
+  customId?: string;
+  customTitle?: string;
+  customAuthor?: string;
+
   // visitedClues: { [category: number]: number[] }; // category -> list of clues (by index)
   currentlyAnsweringCategory?: number; // category index
   currentlyAnsweringClue?: number; // clue index

@@ -8,6 +8,7 @@ import { auth } from "@/discord.ts";
 import WaitFor from "./Util/WaitFor.vue";
 
 defineProps<{ results: SearchBoardPartial[] }>();
+const emit = defineEmits<{ selected: [id: string] }>();
 
 const previewRef = useTemplateRef("preview");
 // previewRef.value?.scrollIntoView()
@@ -129,7 +130,7 @@ function parseDateISO(date: string) {
           <v-icon name="bi-heart" v-if="!selected.favorited" />
           <v-icon name="bi-heart-fill" v-else />
         </button>
-        <button type="button" class="button">Select</button>
+        <button type="button" class="button" @click="emit('selected', selected.id)">Select</button>
       </div>
       <WaitFor :value="boardCache[selected.id] != null">
         <BoardPreview :board="boardCache[selected.id]!" />

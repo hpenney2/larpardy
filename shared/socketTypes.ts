@@ -20,6 +20,9 @@ export interface ClientToServerEvents {
   unreadyForNext: () => void;
   startGame: () => void;
 
+  selectCustomBoard: (id: string) => void;
+  resetBoard: () => void;
+
   selectClue: (category: number, clueValue: number) => void;
   buzz: () => void;
   correctAnswer: () => void;

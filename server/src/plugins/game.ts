@@ -3,6 +3,7 @@ import { Sounds } from "@larpardy/shared/sounds";
 import type { FastifyInstance } from "fastify";
 import { TimerType } from "../StateManager.js";
 import { Point } from "@influxdata/influxdb3-client";
+import z from "zod";
 
 // time to wait for state update ack in milliseconds
 const STATE_UPDATE_TIMEOUT = 5000;
@@ -376,6 +377,31 @@ export default async function routes(
     socket.on("updateSettings", async (settings) => {
       if ((await fastify.state.getState(instance)).host === id) {
         await fastify.state.updateSettings(instance, settings);
+        await sendCurrentState();
+      }
+    });
+
+    socket.on("selectCustomBoard", async (board) => {
+      if (!z.uuid().safeParse(board).success) return;
+
+      const state = await fastify.state.getState(instance);
+      if (state.host === id && board && state.state == StateType.Lobby) {
+        const data = await fastify.db.getBoard(board, id);
+        if (data) {
+          await fastify.state.setCustomBoard(instance, data);
+          await sendCurrentState();
+        }
+      }
+    });
+
+    socket.on("resetBoard", async () => {
+      const state = await fastify.state.getState(instance);
+      if (
+        state.host === id &&
+        state.state == StateType.Lobby &&
+        state.customId
+      ) {
+        await fastify.state.resetBoard(instance, fastify.clueDb);
         await sendCurrentState();
       }
     });
