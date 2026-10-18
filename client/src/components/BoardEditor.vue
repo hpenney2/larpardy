@@ -7,7 +7,10 @@ import type { BoardClue, GameBoard } from "@larpardy/shared/state";
 import BoardEditorQuestion from "./BoardEditorQuestion.vue";
 import BoardEditorFinish from "./BoardEditorFinish.vue";
 import type { BoardPrivacy } from "@larpardy/shared/userBoards";
+import BaseModal from "./Util/BaseModal.vue";
+import BoardEditorSaveLoad from "./BoardEditorSaveLoad.vue";
 
+const exiting = ref(false);
 function leaveEditor() {
   gameState.state = null; // clear leftover state
   socket.connect();
@@ -27,15 +30,34 @@ discordSdk.commands.setOrientationLockState({
 
 const board = useTemplateRef("board");
 
-const columns = ref(editorState.existingBoard?.length ?? 6);
-const rows = ref(editorState.existingBoard?.[0]?.clues.length ?? 5);
+const columns = ref(editorState.existingBoard?.length || 6);
+const rows = ref(editorState.existingBoard?.[0]?.clues.length || 5);
 
 const selectedCol = ref<number | undefined>();
 const selectedRow = ref<number | undefined>();
 
 const finishing = ref(false);
+const saving = ref(false);
 
 const boardData = ref<GameBoard>(editorState.existingBoard ?? []);
+
+function reloadData() {
+  selectedCol.value = undefined;
+  selectedRow.value = undefined;
+
+  existingId.value = editorState.existingData?.id;
+  existingTitle.value = editorState.existingData?.title;
+  existingPrivacy.value = editorState.existingData?.privacy;
+
+  columns.value = editorState.existingBoard?.length || 6;
+  rows.value = editorState.existingBoard?.[0]?.clues.length || 5;
+
+  boardData.value = editorState.existingBoard ?? [];
+
+  // clear
+  editorState.existingData = undefined;
+  editorState.existingBoard = undefined;
+}
 
 // fill missing columns
 watchEffect(() => {
@@ -210,8 +232,9 @@ editorState.existingBoard = undefined;
       </label>
     </div>
     <div class="rightBar">
-      <button class="button" @click="leaveEditor()">Rejoin</button
-      ><button
+      <button class="button" @click="exiting = true">Exit</button>
+      <button class="button" @click="saving = true">Save/Load</button>
+      <button
         class="button"
         @click="finishing = !finishing"
         style="border-color: var(--color-positive)"
@@ -300,6 +323,26 @@ editorState.existingBoard = undefined;
     @return="finishing = false"
     @backToLobby="leaveEditor"
   ></BoardEditorFinish>
+  <BoardEditorSaveLoad
+    v-if="saving"
+    :board="limitedBoard"
+    @done="saving = false"
+    @loaded="
+      reloadData();
+      saving = false;
+    "
+  ></BoardEditorSaveLoad>
+
+  <BaseModal v-if="exiting">
+    <div class="exitingPrompt">
+      <p style="flex-basis: 100%">
+        Are you sure you want to exit and rejoin the lobby?
+        <strong>Unsaved work will be LOST!</strong>
+      </p>
+      <button class="button confirm positive" @click="leaveEditor()">Yes</button>
+      <button class="button confirm negative" @click="exiting = false">No</button>
+    </div>
+  </BaseModal>
 </template>
 
 <style scoped>
@@ -372,7 +415,7 @@ editorState.existingBoard = undefined;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: 0.5vh;
+  gap: 1vh;
 }
 
 .button {
@@ -511,5 +554,41 @@ editorState.existingBoard = undefined;
   field-sizing: content;
   min-width: 3em;
   font-size: 1.5vh;
+}
+
+.exitingPrompt {
+  background-color: var(--color-bg);
+  padding: 2em;
+  padding-top: 2.5em;
+
+  /* border: 0.5em solid var(--color-accent2); */
+  border-radius: 25px;
+  display: inline-block;
+  /* width: 100em; */
+  max-width: 100vw;
+  width: fit-content;
+  /* box-sizing: content-box; */
+
+  margin: auto;
+  position: relative;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.confirm {
+  border-radius: 15px;
+  color: black;
+  flex: 1;
+}
+
+.positive {
+  background-color: var(--color-positive);
+}
+
+.negative {
+  background-color: var(--color-negative);
 }
 </style>
