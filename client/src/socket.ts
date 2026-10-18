@@ -1,8 +1,9 @@
 import { markRaw, reactive } from "vue";
 import { io, Socket } from "socket.io-client";
 import { discordSdk, auth as discordAuth, setupPromise } from "./discord";
-import type { GameState } from "@larpardy/shared/state";
+import type { GameBoard, GameState } from "@larpardy/shared/state";
 import type { ClientToServerEvents, ServerToClientEvents } from "@larpardy/shared/socketTypes";
+import type { SearchBoardPartial } from "@larpardy/shared/userBoards";
 
 await setupPromise; // wait until SDK is ready
 
@@ -22,6 +23,11 @@ export const gameState = reactive<{
   timeOffset: 0,
   inEditor: false,
 });
+
+export const editorState = reactive<{
+  existingData?: SearchBoardPartial;
+  existingBoard?: GameBoard;
+}>({});
 
 export const socket: LSocket = markRaw(
   io(undefined, {

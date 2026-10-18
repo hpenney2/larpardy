@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
 import { discordSdk } from "@/discord";
-import { gameState, socket } from "@/socket";
+import { editorState, gameState, socket } from "@/socket";
 import { computed, ref, useTemplateRef, watchEffect } from "vue";
 import type { BoardClue, GameBoard } from "@larpardy/shared/state";
 import BoardEditorQuestion from "./BoardEditorQuestion.vue";
@@ -14,9 +14,9 @@ function leaveEditor() {
   gameState.inEditor = false;
 }
 
-const existingId = ref<string | undefined>();
-const existingTitle = ref<string | undefined>();
-const existingPrivacy = ref<BoardPrivacy | undefined>();
+const existingId = ref<string | undefined>(editorState.existingData?.id);
+const existingTitle = ref<string | undefined>(editorState.existingData?.title);
+const existingPrivacy = ref<BoardPrivacy | undefined>(editorState.existingData?.privacy);
 
 // board mode; lock to landscape mode
 discordSdk.commands.setOrientationLockState({
@@ -27,15 +27,15 @@ discordSdk.commands.setOrientationLockState({
 
 const board = useTemplateRef("board");
 
-const columns = ref(6);
-const rows = ref(5);
+const columns = ref(editorState.existingBoard?.length ?? 6);
+const rows = ref(editorState.existingBoard?.[0]?.clues.length ?? 5);
 
 const selectedCol = ref<number | undefined>();
 const selectedRow = ref<number | undefined>();
 
 const finishing = ref(false);
 
-const boardData = ref<GameBoard>([]);
+const boardData = ref<GameBoard>(editorState.existingBoard ?? []);
 
 // fill missing columns
 watchEffect(() => {
@@ -184,6 +184,10 @@ function swapWithRight(column: number) {
 watchEffect(() => {
   board.value?.style.setProperty("--columns", columns.value.toString());
 });
+
+// we're done with these values, they should be cleared now
+editorState.existingData = undefined;
+editorState.existingBoard = undefined;
 </script>
 
 <template>

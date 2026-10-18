@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { gameState, socket } from "@/socket";
+import { editorState, gameState, socket } from "@/socket";
 import { ref, watch, watchEffect } from "vue";
 import BoardSelectList from "./BoardSelectList.vue";
 import { auth, discordSdk } from "@/discord.ts";
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
 import type { SearchBoardPartial } from "@larpardy/shared/userBoards";
 import WaitFor from "./Util/WaitFor.vue";
+import type { GameBoard } from "@larpardy/shared/state";
 
 const menuOpen = defineModel<boolean>();
 
@@ -17,6 +18,18 @@ function enterEditor() {
   showingDisconnectWarning.value = false;
   socket.disconnect();
   gameState.inEditor = true;
+}
+
+function promptEditExisting(data: SearchBoardPartial, board: GameBoard) {
+  editorState.existingData = data;
+  editorState.existingBoard = board;
+  showingDisconnectWarning.value = true;
+}
+
+function cancelEditPrompt() {
+  editorState.existingData = undefined;
+  editorState.existingBoard = undefined;
+  showingDisconnectWarning.value = false;
 }
 
 const sortMethod = ref("plays");
@@ -174,6 +187,7 @@ function selectBoard(id: string) {
               v-if="searchResults!.length > 0"
               :results="searchResults!"
               @selected="selectBoard($event)"
+              @edit="(data, board) => promptEditExisting(data, board)"
             />
             <p v-else>Sorry, no results found.</p>
 
@@ -188,9 +202,7 @@ function selectBoard(id: string) {
           Opening the board editor will disconnect you from this lobby. Continue?
         </p>
         <button class="button confirm positive" @click="enterEditor()">Yes</button>
-        <button class="button confirm negative" @click="showingDisconnectWarning = false">
-          No
-        </button>
+        <button class="button confirm negative" @click="cancelEditPrompt()">No</button>
       </div>
     </section>
   </div>
