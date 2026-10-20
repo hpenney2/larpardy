@@ -101,7 +101,8 @@ class Database {
         `
         INSERT INTO users (id, admin)
         VALUES ($1, true)
-        ON CONFLICT (id) DO NOTHING;
+        ON CONFLICT (id) DO UPDATE SET
+          admin = true;
         `,
         [process.env.HOSTER_ID],
       );
