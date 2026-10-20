@@ -12,6 +12,8 @@ const menuOpen = defineModel<boolean>();
 
 const searchText = defineModel("search", { default: "" });
 
+const modMode = ref(false);
+
 const showingDisconnectWarning = ref(false);
 function enterEditor() {
   console.log("disconnecting and entering board editor");
@@ -63,7 +65,12 @@ function resetPages() {
 const searchResults = ref<SearchBoardPartial[] | null>(null);
 const searchError = ref<string | null>(null);
 async function search(query: string, sort: string, goingBack: boolean = false, cursor?: string) {
-  const parameters = new URLSearchParams({ query, sort, cursor: cursor ?? "" }).toString();
+  const parameters = new URLSearchParams({
+    query,
+    sort,
+    moderating: modMode.value.toString(),
+    cursor: cursor ?? "",
+  }).toString();
 
   if (cursor == null) {
     resetPages();
@@ -87,7 +94,11 @@ async function search(query: string, sort: string, goingBack: boolean = false, c
       cursorPages.value[pageIndex.value + 1] = data.next;
     }
   } else {
-    searchError.value = (await response.json())?.message ?? "An unexpected error occurred.";
+    try {
+      searchError.value = (await response.json())?.message ?? "An unexpected error occurred.";
+    } catch {
+      searchError.value = "An unexpected error occurred.";
+    }
   }
 }
 
@@ -130,7 +141,7 @@ function selectBoard(id: string) {
           <input
             type="search"
             class="search"
-            placeholder="Search"
+            placeholder="Search or enter code"
             v-model="searchText"
             @keydown="onKeyDown"
           />
@@ -141,6 +152,14 @@ function selectBoard(id: string) {
           </button>
         </div>
         <div class="boardMenuMain">
+          <label v-if="gameState.isAdmin">
+            <v-icon name="bi-shield-fill" aria-hidden="true"></v-icon>&nbsp;<input
+              aria-label="Moderator Mode"
+              type="checkbox"
+              v-model="modMode"
+            />
+          </label>
+          &nbsp;
           <label
             >Sort by
             <select
@@ -186,6 +205,7 @@ function selectBoard(id: string) {
             <BoardSelectList
               v-if="searchResults!.length > 0"
               :results="searchResults!"
+              :modMode
               @selected="selectBoard($event)"
               @edit="(data, board) => promptEditExisting(data, board)"
             />

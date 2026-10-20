@@ -65,6 +65,10 @@ body {
   }
 }
 
+.danger {
+  color: var(--color-negative);
+}
+
 .button {
   background-color: #000000aa;
   color: white;
@@ -89,4 +93,8 @@ body {
 .button.highlighted {
   background-color: var(--color-accent3);
   /* border-width: 4px; */
+}
+
+.button.danger {
+  border-color: var(--color-negative);
 }

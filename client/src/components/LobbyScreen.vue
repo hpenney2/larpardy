@@ -2,13 +2,14 @@
 import { DISCORD_INVITE, type DiscordUsers } from "@/shared";
 import DiscordAvatar from "./DiscordAvatar.vue";
 import TitleHeader from "./TitleHeader.vue";
-import { auth as discordAuth, discordSdk } from "@/discord.ts";
+import { auth, auth as discordAuth, discordSdk } from "@/discord.ts";
 import { socket, gameState } from "@/socket.ts";
 import ToggleSwitch from "./ToggleSwitch.vue";
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import HoverTooltip from "./HoverTooltip.vue";
 import BoardSelectionMenu from "./BoardSelectionMenu.vue";
 import { Common as SDKCommon } from "@discord/embedded-app-sdk";
+import type { UserPartial } from "@larpardy/shared/userBoards";
 
 defineProps<{
   users?: DiscordUsers;
@@ -59,6 +60,30 @@ discordSdk.commands.setOrientationLockState({
   picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
   grid_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
 });
+
+// pull down user data
+async function pullUserData() {
+  const response = await fetch("/api/users/me", {
+    method: "GET",
+    headers: {
+      Authorization: auth.access_token,
+    },
+  });
+
+  if (response.ok) {
+    const data: UserPartial = await response.json();
+    gameState.isAdmin = data.admin;
+    gameState.isRestricted = data.restricted;
+  }
+}
+
+watch(
+  boardMenuOpen,
+  async () => {
+    await pullUserData();
+  },
+  { immediate: true },
+);
 </script>
 <template>
   <TitleHeader></TitleHeader>

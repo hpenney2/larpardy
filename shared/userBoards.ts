@@ -50,6 +50,7 @@ export const BoardSearchQuerySchema = z.object({
   query: z.string().trim().optional(),
   sort: BoardSearchSortSchema,
   cursor: z.base64().optional(),
+  moderating: z.stringbool().default(false),
 });
 
 export type BoardPrivacy = z.infer<typeof BoardPrivacySchema>;
@@ -59,3 +60,16 @@ export type SearchBoardPartial = z.infer<typeof SearchBoardPartialSchema>;
 
 export type BoardSearchSort = z.infer<typeof BoardSearchSortSchema>;
 export type BoardSearchQuery = z.infer<typeof BoardSearchQuerySchema>;
+
+export interface User {
+  id: string;
+  username: string | null;
+  last_login: Date | null;
+  admin: boolean;
+  restricted: boolean;
+}
+
+export interface UserPartial {
+  admin: boolean;
+  restricted: boolean;
+}

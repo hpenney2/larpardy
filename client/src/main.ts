@@ -16,6 +16,7 @@ import {
   BiPlayFill,
   BiQuestionCircleFill,
   BiSearch,
+  BiShieldFill,
   BiXLg,
   GiHamburgerMenu,
 } from "oh-vue-icons/icons";
@@ -48,6 +49,7 @@ async function main() {
     BiPlayFill,
     BiHeart,
     BiHeartFill,
+    BiShieldFill,
   );
   app.component("v-icon", OhVueIcon);
 

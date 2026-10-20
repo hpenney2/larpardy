@@ -6,12 +6,15 @@ import { pluralize } from "@/shared.ts";
 import type { GameBoard } from "@larpardy/shared/state";
 import { auth } from "@/discord.ts";
 import WaitFor from "./Util/WaitFor.vue";
+import ModerationMenu from "./ModerationMenu.vue";
 
-defineProps<{ results: SearchBoardPartial[] }>();
+defineProps<{ results: SearchBoardPartial[]; modMode: boolean }>();
 const emit = defineEmits<{
   selected: [id: string];
   edit: [existingData: SearchBoardPartial, board: GameBoard];
 }>();
+
+const modMenu = useTemplateRef("modMenu");
 
 const previewRef = useTemplateRef("preview");
 // previewRef.value?.scrollIntoView()
@@ -87,7 +90,7 @@ function parseDateISO(date: string) {
       <li
         v-for="board in results"
         :key="board.id"
-        :class="{ private: board.privacy !== 'public' }"
+        :class="{ private: board.privacy !== 'public', restricted: board.restricted }"
         @click="selected = board"
       >
         <h4 style="margin-top: 0.5em">
@@ -122,6 +125,9 @@ function parseDateISO(date: string) {
       </p>
       <p>{{ selected.privacy.charAt(0).toUpperCase() + selected.privacy.slice(1) }}</p>
       <div class="previewButtons">
+        <button type="button" class="button danger" v-if="modMode" @click="modMenu?.open(selected)">
+          Moderate
+        </button>
         <button
           type="button"
           class="button"
@@ -148,6 +154,8 @@ function parseDateISO(date: string) {
       </WaitFor>
     </div>
   </section>
+
+  <ModerationMenu ref="modMenu" />
 </template>
 
 <style scoped>
@@ -188,6 +196,10 @@ function parseDateISO(date: string) {
 
 .boardList > li.private {
   border-style: dashed;
+}
+
+.boardList > li.restricted {
+  border-color: var(--color-negative);
 }
 
 .boardList > li:hover {

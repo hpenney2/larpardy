@@ -16,12 +16,19 @@ export const gameState = reactive<{
   timeOffset: number;
 
   inEditor: boolean;
+
+  isAdmin: boolean;
+  isRestricted: boolean;
 }>({
   connected: false,
   state: null,
   ping: 0,
   timeOffset: 0,
+
   inEditor: false,
+
+  isAdmin: false,
+  isRestricted: false,
 });
 
 export const editorState = reactive<{

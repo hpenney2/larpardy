@@ -4,6 +4,7 @@ import type {
   BoardSearchSort,
   SearchBoard,
   SearchBoardPartial,
+  User,
   UserBoard,
 } from "@larpardy/shared/userBoards";
 import type { FastifyInstance } from "fastify";
@@ -200,6 +201,7 @@ class Database {
   public async search(
     sort: BoardSearchSort,
     forUser: string,
+    moderating: boolean,
     cursor?: string,
     query?: string,
   ): Promise<{
@@ -235,9 +237,9 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2)))" : "$1 <% title AND (b.privacy = 'public' OR (users.id = $2))"}) 
+          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $6))" : "$1 <% title AND (b.privacy = 'public' OR (users.id = $2) OR $6)"}) 
                 AND b.deleted IS NULL 
-                AND (b.restricted IS NULL OR (SELECT admin FROM users WHERE id = $2))
+                AND (b.restricted IS NULL OR $6)
           GROUP BY b.id, users.id
           HAVING ($5::REAL IS NULL OR $4::INT IS NULL OR $3::UUID IS NULL) OR (word_similarity($1::TEXT, b.title), COUNT(distinct plays.id)::int, b.id) < ($5, $4, $3)
           ORDER BY sml DESC, plays DESC, b.id DESC
@@ -249,6 +251,7 @@ class Database {
             cursorData?.id,
             cursorData?.plays,
             cursorData?.similar,
+            moderating,
           ],
         );
         return {
@@ -263,13 +266,15 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2)))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2))"}) AND b.deleted IS NULL AND (b.restricted IS NULL OR (SELECT admin FROM users WHERE id = $2))
+          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"}) 
+                AND b.deleted IS NULL 
+                AND (b.restricted IS NULL OR $5)
           GROUP BY b.id, users.id
           HAVING ($4::INT IS NULL OR $3::UUID IS NULL) OR (COUNT(distinct plays.id)::int, b.id) < ($4, $3)
           ORDER BY plays DESC, b.id DESC
           LIMIT 20;
           `,
-          [query, forUser, cursorData?.id, cursorData?.plays],
+          [query, forUser, cursorData?.id, cursorData?.plays, moderating],
         );
         return {
           results: result.rows,
@@ -283,13 +288,15 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2)))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2))"}) AND b.deleted IS NULL AND (b.restricted IS NULL OR (SELECT admin FROM users WHERE id = $2))
+          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"})
+                AND b.deleted IS NULL 
+                AND (b.restricted IS NULL OR $5)
           GROUP BY b.id, users.id
           HAVING ($4::INT IS NULL OR $3::UUID IS NULL) OR (COUNT(distinct fav.id)::int, b.id) < ($4, $3)
           ORDER BY favorites DESC, b.id DESC
           LIMIT 20;
           `,
-          [query, forUser, cursorData?.id, cursorData?.favorites],
+          [query, forUser, cursorData?.id, cursorData?.favorites, moderating],
         );
         return {
           results: result.rows,
@@ -303,9 +310,12 @@ class Database {
           INNER JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2)))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2))"}) AND fav.id = $2 AND b.deleted IS NULL AND (b.restricted IS NULL OR (SELECT admin FROM users WHERE id = $2))
+          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
+                AND fav.id = $2 
+                AND b.deleted IS NULL 
+                AND (b.restricted IS NULL OR $3)
           GROUP BY b.id, users.id
-          HAVING (${query ? "$5::REAL IS NULL OR" : ""} $4::INT IS NULL OR $3::UUID IS NULL) OR (${query ? "word_similarity($1::TEXT, b.title)," : ""} COUNT(distinct plays.id)::int, b.id) < (${query ? "$5," : ""} $4, $3)
+          HAVING (${query ? "$6::REAL IS NULL OR" : ""} $5::INT IS NULL OR $4::UUID IS NULL) OR (${query ? "word_similarity($1::TEXT, b.title)," : ""} COUNT(distinct plays.id)::int, b.id) < (${query ? "$6," : ""} $5, $4)
           ORDER BY ${query ? "word_similarity($1::TEXT, b.title) DESC," : ""} plays DESC, b.id DESC
           LIMIT 20;
           `,
@@ -313,11 +323,13 @@ class Database {
             ? [
                 query,
                 forUser,
+                moderating,
+
                 cursorData?.id,
                 cursorData?.plays,
                 cursorData?.similar,
               ]
-            : [query, forUser, cursorData?.id, cursorData?.plays],
+            : [query, forUser, moderating, cursorData?.id, cursorData?.plays],
         );
         return {
           results: result.rows,
@@ -331,9 +343,12 @@ class Database {
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2)))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2))"}) AND b.author = $2 AND b.deleted IS NULL AND (b.restricted IS NULL OR (SELECT admin FROM users WHERE id = $2))
+          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
+                AND b.author = $2 
+                AND b.deleted IS NULL 
+                AND (b.restricted IS NULL OR $3)
           GROUP BY b.id, users.id
-          HAVING (${query ? "$5::REAL IS NULL OR" : ""} $4::INT IS NULL OR $3::UUID IS NULL) OR (${query ? "word_similarity($1::TEXT, b.title)," : ""} COUNT(distinct plays.id)::int, b.id) < (${query ? "$5," : ""} $4, $3)
+          HAVING (${query ? "$6::REAL IS NULL OR" : ""} $5::INT IS NULL OR $4::UUID IS NULL) OR (${query ? "word_similarity($1::TEXT, b.title)," : ""} COUNT(distinct plays.id)::int, b.id) < (${query ? "$6," : ""} $5, $4)
           ORDER BY ${query ? "word_similarity($1::TEXT, b.title) DESC," : ""} plays DESC, b.id DESC
           LIMIT 20;
           `,
@@ -341,11 +356,13 @@ class Database {
             ? [
                 query,
                 forUser,
+                moderating,
+
                 cursorData?.id,
                 cursorData?.plays,
                 cursorData?.similar,
               ]
-            : [query, forUser, cursorData?.id, cursorData?.plays],
+            : [query, forUser, moderating, cursorData?.id, cursorData?.plays],
         );
         return {
           results: result.rows,
@@ -354,6 +371,99 @@ class Database {
       default:
         throw Error("Invalid sort method for search.");
     }
+  }
+
+  public async getUser(user: string) {
+    const result = await this.pg.query<User>(
+      `SELECT * FROM users WHERE id = $1;`,
+      [user],
+    );
+
+    return result.rows[0];
+  }
+
+  public async getBoardAuthor(board: string) {
+    const result = await this.pg.query<User>(
+      `
+      SELECT users.* 
+      FROM users
+      JOIN boards ON boards.id = $1
+      WHERE users.id = boards.author;`,
+      [board],
+    );
+
+    return result.rows[0];
+  }
+
+  public async setUserRestricted(user: string, restrict: boolean) {
+    const result = await this.pg.query(
+      `
+      UPDATE users
+      SET
+        restricted = $2
+      WHERE id = $1;
+      `,
+      [user, restrict],
+    );
+
+    return { success: result.rowCount != null && result.rowCount > 0 };
+  }
+
+  public async setBoardRestricted(
+    board: string,
+    restrict: boolean,
+  ): Promise<{ success: boolean; date: Date | null }> {
+    if (restrict) {
+      const result = await this.pg.query(
+        `
+        UPDATE boards
+        SET
+          restricted = NOW()
+        WHERE id = $1
+        RETURNING restricted;
+        `,
+        [board],
+      );
+      return {
+        success: result.rowCount != null && result.rowCount > 0,
+        date: result.rows[0]?.restricted,
+      };
+    } else {
+      const result = await this.pg.query(
+        `
+        UPDATE boards
+        SET
+          restricted = NULL
+        WHERE id = $1;
+        `,
+        [board],
+      );
+      return {
+        success: result.rowCount != null && result.rowCount > 0,
+        date: null,
+      };
+    }
+  }
+
+  public async deleteBoard(board: string) {
+    const result = await this.pg.query(
+      `
+      UPDATE boards
+      SET
+        deleted = NOW()
+      WHERE id = $1 AND deleted = NULL;
+      `,
+    );
+    return result.rowCount != null && result.rowCount > 0;
+  }
+
+  public async isAdmin(user: string) {
+    const result = await this.pg.query<{ admin: boolean }>(
+      `SELECT admin FROM users WHERE id = $1;`,
+      [user],
+    );
+
+    return result.rows[0]?.admin;
   }
 
   public async transaction<T>(
