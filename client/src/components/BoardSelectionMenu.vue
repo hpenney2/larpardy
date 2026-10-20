@@ -145,10 +145,15 @@ function selectBoard(id: string) {
             v-model="searchText"
             @keydown="onKeyDown"
           />
-          <button class="button" @click="showingDisconnectWarning = true">
+          <button
+            class="button"
+            @click="showingDisconnectWarning = true"
+            :disabled="gameState.isRestricted"
+            :class="{ danger: gameState.isRestricted }"
+          >
             <span style="color: var(--color-accent); font-size: x-large; vertical-align: middle"
               >+</span
-            >&nbsp;Create
+            >&nbsp;{{ gameState.isRestricted ? "RESTRICTED" : "Create" }}
           </button>
         </div>
         <div class="boardMenuMain">
