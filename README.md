@@ -38,7 +38,7 @@ If you want to play singleplayer, you can also use **Hostless Mode** to play sol
 > [!WARNING]
 > This is only needed if you are trying to run a local instance for development. If you just want to play the game, please [play the normal version above](#how-do-i-play).
 
-Docker is required.
+Docker and Sqitch are required.
 
 For local development, run
 
@@ -78,6 +78,13 @@ HOSTER_ID=
 ```
 
 You also need to add a `clue.db` SQLite database to the `server/` directory, which currently is based on [jepp](https://github.com/ecshreve/jepp)'s database format.
+
+The latest database schema must be deployed using
+
+```
+cd db
+sqitch deploy db:pg://<database URI>/larpardy
+```
 
 Start the services by running
 

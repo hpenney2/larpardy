@@ -24,55 +24,6 @@ const SearchPaginationCursorSchema = z.object({
 });
 type SearchPaginationCursor = z.infer<typeof SearchPaginationCursorSchema>;
 
-// TODO: we should probably be using a migration system!
-const CREATE_TABLES_QUERY = `
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
--- https://stackoverflow.com/a/79938183
-DO 'BEGIN
-  CREATE TYPE BoardPrivacy AS ENUM (''public'', ''unlisted'', ''private'');
-EXCEPTION WHEN duplicate_object THEN
-  NULL;
-END;';
-
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  username TEXT,
-  last_login TIMESTAMPTZ DEFAULT NOW(),
-  admin BOOLEAN DEFAULT false NOT NULL,
-  restricted BOOLEAN DEFAULT false NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_usernames ON users USING gin (username gin_trgm_ops);
-
-CREATE TABLE IF NOT EXISTS boards ( 
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  author TEXT NOT NULL REFERENCES users(id),  -- ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  privacy BoardPrivacy DEFAULT 'public' NOT NULL,
-  board JSONB NOT NULL,
-  created TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-  edited TIMESTAMPTZ,
-  deleted TIMESTAMPTZ,
-  restricted TIMESTAMPTZ
-);
-CREATE INDEX IF NOT EXISTS idx_board_titles ON boards USING gin (title gin_trgm_ops);
-
-CREATE TABLE IF NOT EXISTS favorite_boards (
-  id TEXT NOT NULL REFERENCES users(id),
-  board UUID NOT NULL REFERENCES boards(id),
-  CONSTRAINT UQ_user_board UNIQUE (id, board)
-);
-CREATE INDEX IF NOT EXISTS idx_favorite_boards ON favorite_boards (id);
-
-CREATE TABLE IF NOT EXISTS board_plays (
-  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  board UUID NOT NULL REFERENCES boards(id),
-  by TEXT NOT NULL REFERENCES users(id),
-  time TIMESTAMPTZ DEFAULT NOW() NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_board_plays ON board_plays (board);
-`;
-
 function generateCursor(
   result: (SearchBoardPartial & { sml?: number })[],
 ): string {
@@ -97,7 +48,6 @@ class Database {
 
   public async initDatabase() {
     await this.transaction(async (client) => {
-      await client.query(CREATE_TABLES_QUERY);
       await client.query(
         `
         INSERT INTO users (id, admin)
