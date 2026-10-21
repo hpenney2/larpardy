@@ -200,7 +200,7 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $6))" : "$1 <% title AND (b.privacy = 'public' OR (users.id = $2) OR $6)"}) 
+          WHERE (${queryIsID ? "(b.id = $1::UUID AND (b.privacy <> 'private' OR (users.id = $2) OR $6))" : "$1 <% title AND (b.privacy = 'public' OR (users.id = $2) OR $6)"}) 
                 AND b.deleted IS NULL 
                 AND (b.restricted IS NULL OR $6)
           GROUP BY b.id, users.id
