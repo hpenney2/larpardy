@@ -148,6 +148,19 @@ class Database {
     }
   }
 
+  public async recordPlay(board: string, user: string) {
+    await this.pg.query(
+      `
+      INSERT INTO board_plays (board, by)
+      SELECT $1, $2
+      WHERE NOT EXISTS (
+        SELECT 1 FROM board_plays WHERE time >= NOW() - INTERVAL '10 minutes'
+      );
+      `,
+      [board, user],
+    );
+  }
+
   public async search(
     sort: BoardSearchSort,
     forUser: string,

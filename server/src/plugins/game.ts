@@ -368,6 +368,8 @@ export default async function routes(
               .setUintegerField("players", state.players.length)
               .setBooleanField("hostless", state.settings.isHostless),
           );
+
+          if (state.customId) await fastify.db.recordPlay(state.customId, id);
         } catch (err) {
           console.warn(`error starting game for ${instance}:`, err);
         }
