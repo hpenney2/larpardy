@@ -157,9 +157,7 @@ watch(
 
       <div>
         <!-- <p>Gamemode: Standard / Random</p> -->
-        <button class="button" @click="boardMenuOpen = !boardMenuOpen">
-          Choose a Custom Board
-        </button>
+        <button class="button" @click="boardMenuOpen = !boardMenuOpen">Custom Boards</button>
         <p v-if="gameState.state?.customId">
           Selected:
           <br />
@@ -167,7 +165,11 @@ watch(
           <br />
           by <cite>@{{ gameState.state.customAuthor }}</cite>
         </p>
-        <button class="button" v-if="gameState.state?.customId" @click="socket.emit('resetBoard')">
+        <button
+          class="button"
+          v-if="gameState.state?.customId && isHost"
+          @click="socket.emit('resetBoard')"
+        >
           Reset
         </button>
         <BoardSelectionMenu v-model="boardMenuOpen"></BoardSelectionMenu>

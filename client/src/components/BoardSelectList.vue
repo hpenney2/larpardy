@@ -8,6 +8,7 @@ import { auth } from "@/discord.ts";
 import WaitFor from "./Util/WaitFor.vue";
 import ModerationMenu from "./ModerationMenu.vue";
 import ConfirmModal from "./Util/ConfirmModal.vue";
+import { gameState } from "@/socket.ts";
 
 const { results } = defineProps<{ results: SearchBoardPartial[]; modMode: boolean }>();
 const emit = defineEmits<{
@@ -182,7 +183,14 @@ function parseDateISO(date: string) {
         >
           Edit
         </button>
-        <button type="button" class="button" @click="emit('selected', selected.id)">Select</button>
+        <button
+          type="button"
+          class="button"
+          @click="emit('selected', selected.id)"
+          :disabled="auth.user.id !== gameState.state?.host"
+        >
+          Select
+        </button>
       </div>
       <WaitFor :value="boardCache[selected.id] != null">
         <BoardPreview :board="boardCache[selected.id]!" />
