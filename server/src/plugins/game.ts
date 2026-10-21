@@ -263,9 +263,20 @@ export default async function routes(
                     sockets.map((client) => client.data.discord.id),
                   )
                   .then(() => true);
-              } else if (!state.players.includes(state.host)) {
+              } else if (
+                state.players.length > 0 &&
+                !state.players.includes(state.host)
+              ) {
                 return fastify.state
                   .setHostPlayer(instance, state.players[0]!)
+                  .then(() =>
+                    fastify.state.setActivePlayer(
+                      instance,
+                      state.players[
+                        Math.floor(Math.random() * state.players.length)
+                      ]!,
+                    ),
+                  )
                   .then(() => false);
               }
               return false;
