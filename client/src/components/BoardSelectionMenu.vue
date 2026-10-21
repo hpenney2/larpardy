@@ -213,6 +213,7 @@ function selectBoard(id: string) {
               :modMode
               @selected="selectBoard($event)"
               @edit="(data, board) => promptEditExisting(data, board)"
+              @removed="searchResults = searchResults!.filter((item) => item.id !== $event)"
             />
             <p v-else>Sorry, no results found.</p>
 

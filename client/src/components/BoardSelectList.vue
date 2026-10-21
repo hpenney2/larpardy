@@ -7,10 +7,12 @@ import type { GameBoard } from "@larpardy/shared/state";
 import { auth } from "@/discord.ts";
 import WaitFor from "./Util/WaitFor.vue";
 import ModerationMenu from "./ModerationMenu.vue";
+import ConfirmModal from "./Util/ConfirmModal.vue";
 
-defineProps<{ results: SearchBoardPartial[]; modMode: boolean }>();
+const { results } = defineProps<{ results: SearchBoardPartial[]; modMode: boolean }>();
 const emit = defineEmits<{
   selected: [id: string];
+  removed: [id: string];
   edit: [existingData: SearchBoardPartial, board: GameBoard];
 }>();
 
@@ -41,11 +43,11 @@ watch(
   },
 );
 
-const favoriteBusy = ref(false);
+const busy = ref(false);
 async function favorite() {
   if (!selected.value) return;
 
-  favoriteBusy.value = true;
+  busy.value = true;
   const board = selected.value;
 
   const response = await fetch(`/api/board/${board.id}/favorite`, {
@@ -67,7 +69,29 @@ async function favorite() {
     }
   }
 
-  favoriteBusy.value = false;
+  busy.value = false;
+}
+
+const deleting = ref(false);
+async function deleteBoard() {
+  if (!selected.value) return;
+
+  busy.value = true;
+  const board = selected.value;
+
+  const response = await fetch(`/api/board/${board.id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: auth.access_token,
+    },
+  });
+
+  if (response.ok) {
+    selected.value = null;
+    emit("removed", board.id);
+  }
+
+  busy.value = false;
 }
 
 function formatNumber(num: number) {
@@ -133,12 +157,23 @@ function parseDateISO(date: string) {
           class="button"
           :class="{ favorited: selected.favorited }"
           :aria-label="selected.favorited ? 'Unfavorite' : 'Favorite'"
-          :disabled="favoriteBusy"
+          :disabled="busy"
           @click="favorite()"
         >
           <v-icon name="bi-heart" v-if="!selected.favorited" />
           <v-icon name="bi-heart-fill" v-else />
         </button>
+
+        <button
+          type="button"
+          class="button danger"
+          v-if="selected.owned"
+          :disabled="busy"
+          @click="deleting = true"
+        >
+          Delete
+        </button>
+
         <button
           type="button"
           class="button"
@@ -156,6 +191,18 @@ function parseDateISO(date: string) {
   </section>
 
   <ModerationMenu ref="modMenu" />
+
+  <ConfirmModal
+    v-if="deleting && selected"
+    @yes="
+      deleting = false;
+      deleteBoard();
+    "
+    @no="deleting = false"
+  >
+    Are you sure you want to delete <cite>{{ selected.title }}</cite
+    >?
+  </ConfirmModal>
 </template>
 
 <style scoped>

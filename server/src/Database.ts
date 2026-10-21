@@ -9,7 +9,7 @@ import type {
 } from "@larpardy/shared/userBoards";
 import type { FastifyInstance } from "fastify";
 import fastifyPlugin from "fastify-plugin";
-import { types, type PoolClient } from "pg";
+import { type PoolClient } from "pg";
 import z from "zod";
 
 type Awaitable<T> = T | Promise<T>;
@@ -408,14 +408,15 @@ class Database {
     }
   }
 
-  public async deleteBoard(board: string) {
+  public async deleteBoard(board: string, checkAuthor?: string) {
     const result = await this.pg.query(
       `
       UPDATE boards
       SET
         deleted = NOW()
-      WHERE id = $1 AND deleted = NULL;
+      WHERE id = $1 AND deleted IS NULL AND ($2::TEXT IS NULL OR author = $2);
       `,
+      [board, checkAuthor],
     );
     return result.rowCount != null && result.rowCount > 0;
   }

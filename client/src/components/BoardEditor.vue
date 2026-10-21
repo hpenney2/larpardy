@@ -9,6 +9,7 @@ import BoardEditorFinish from "./BoardEditorFinish.vue";
 import type { BoardPrivacy } from "@larpardy/shared/userBoards";
 import BaseModal from "./Util/BaseModal.vue";
 import BoardEditorSaveLoad from "./BoardEditorSaveLoad.vue";
+import ConfirmModal from "./Util/ConfirmModal.vue";
 
 const exiting = ref(false);
 function leaveEditor() {
@@ -333,16 +334,10 @@ editorState.existingBoard = undefined;
     "
   ></BoardEditorSaveLoad>
 
-  <BaseModal v-if="exiting">
-    <div class="exitingPrompt">
-      <p style="flex-basis: 100%">
-        Are you sure you want to exit and rejoin the lobby?
-        <strong>Unsaved work will be LOST!</strong>
-      </p>
-      <button class="button confirm positive" @click="leaveEditor()">Yes</button>
-      <button class="button confirm negative" @click="exiting = false">No</button>
-    </div>
-  </BaseModal>
+  <ConfirmModal v-if="exiting" @yes="leaveEditor()" @no="exiting = false">
+    Are you sure you want to exit and rejoin the lobby?
+    <strong>Unsaved work will be LOST!</strong>
+  </ConfirmModal>
 </template>
 
 <style scoped>
@@ -554,41 +549,5 @@ editorState.existingBoard = undefined;
   field-sizing: content;
   min-width: 3em;
   font-size: 1.5vh;
-}
-
-.exitingPrompt {
-  background-color: var(--color-bg);
-  padding: 2em;
-  padding-top: 2.5em;
-
-  /* border: 0.5em solid var(--color-accent2); */
-  border-radius: 25px;
-  display: inline-block;
-  /* width: 100em; */
-  max-width: 100vw;
-  width: fit-content;
-  /* box-sizing: content-box; */
-
-  margin: auto;
-  position: relative;
-
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 1em;
-}
-
-.confirm {
-  border-radius: 15px;
-  color: black;
-  flex: 1;
-}
-
-.positive {
-  background-color: var(--color-positive);
-}
-
-.negative {
-  background-color: var(--color-negative);
 }
 </style>

@@ -110,6 +110,39 @@ export default async function routes(
     },
   );
 
+  fastify.delete<{
+    Headers: AuthorizationHeader;
+    Params: { id: string };
+  }>(
+    "/api/board/:id",
+    {
+      schema: {
+        headers: AuthorizationHeaderSchema,
+      },
+    },
+    async (request, reply) => {
+      let discord;
+      try {
+        discord = await getDiscordUser(request.headers.authorization);
+      } catch (err) {
+        reply.code(401).send();
+        return;
+      }
+
+      const success = await fastify.db.deleteBoard(
+        request.params.id,
+        discord.id,
+      );
+
+      if (!success) {
+        reply.code(404).send();
+        return;
+      }
+
+      return;
+    },
+  );
+
   fastify.get<{ Headers: AuthorizationHeader; Querystring: BoardSearchQuery }>(
     "/api/search_boards",
     {
