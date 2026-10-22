@@ -243,6 +243,29 @@ fastify.state
   .dropStaleKeys()
   .then(() => console.log("finished checking for stale keys"));
 
+// https://fastify.dev/docs/latest/Reference/Errors/#errors-in-fastify
+fastify.setErrorHandler(function (error: any, request, reply) {
+  // Errors with a statusCode below 500 were raised deliberately by this
+  // application, as were validation errors. A status code below 500 is not on
+  // its own a guarantee that the message is safe to expose — narrow this
+  // condition if any of yours are not.
+
+  if (
+    error != null &&
+    (error?.validation || (error?.statusCode && error.statusCode < 500))
+  ) {
+    return reply.send(error);
+  }
+
+  // Anything else is unexpected: log it, but do not describe it to the client.
+  this.log.error({ err: error }, "unhandled error");
+  reply.status(500).send({
+    statusCode: 500,
+    error: "Internal Server Error",
+    message: "Internal Server Error",
+  });
+});
+
 fastify.listen({ port: 3001, host: "0.0.0.0" }, function (err, address) {
   if (err) {
     fastify.log.error(err);
