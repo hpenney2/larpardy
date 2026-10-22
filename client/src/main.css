@@ -98,3 +98,15 @@ body {
 .button.danger {
   border-color: var(--color-negative);
 }
+
+a:link {
+  color: var(--color-primary);
+}
+
+a:visited {
+  color: var(--color-accent3);
+}
+
+a:active {
+  color: red;
+}

@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import BaseModal from "./Util/BaseModal.vue";
 import type { GameBoard } from "@larpardy/shared/state";
 import type { BoardPrivacy, UserBoard } from "@larpardy/shared/userBoards";
-import { auth } from "@/discord.ts";
+import { auth, discordSdk } from "@/discord.ts";
 
 const emit = defineEmits(["return", "backToLobby"]);
 
@@ -150,6 +150,18 @@ const errorText = computed(() => {
             v-model="formData.title"
             :disabled="submitting"
         /></label>
+        <p>
+          By submitting, you agree to our
+          <a
+            href="javascript:void(0);"
+            @click="
+              discordSdk.commands.openExternalLink({
+                url: 'https://larpardy.purpld.dev/legal.html',
+              })
+            "
+            >Terms of Service and Privacy Policy</a
+          >.
+        </p>
       </form>
       <div v-else>
         <h3>Not yet...</h3>
