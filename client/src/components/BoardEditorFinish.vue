@@ -68,6 +68,10 @@ const errorText = computed(() => {
       return "Forbidden. Either you are banned (restricted) or are somehow trying to edit a board that you did not create.";
     case 500:
       return "Unexpected error. Please report this!";
+    case 502:
+      return "The server is not available. Please try again later.";
+    case 504:
+      return "The server timed out. Please try again later; the server might be under load.";
     default:
       return "Unexpected error. You might want to report this.";
   }
