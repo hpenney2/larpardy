@@ -20,14 +20,26 @@ import {
   type APIApplicationCommand,
   type APIUser,
 } from "discord-api-types/v10";
-import { Client, Events } from "discord.js";
+import {
+  Client,
+  Events,
+  SharedSlashCommand,
+  SlashCommandBuilder,
+} from "discord.js";
 import cluePlugin from "./jep.js";
 import statsPlugin from "./stats.js";
 import databasePlugin from "./Database.js";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from "@fastify/type-provider-zod";
 
 dotenv.config({ path: "../.env" });
 
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+fastify.setValidatorCompiler(validatorCompiler);
+fastify.setSerializerCompiler(serializerCompiler);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -143,7 +155,12 @@ fastify.socketIO.use(async (socket, next) => {
     socket.data.discord = userInfo;
     socket.data.instanceId = instanceId;
 
-    await fastify.db.addUser(userInfo.id, userInfo.username);
+    const { new_updates } = await fastify.db.addUser(
+      userInfo.id,
+      userInfo.username,
+    );
+
+    socket.data.new_updates = new_updates;
 
     next();
   } catch (err) {
@@ -168,6 +185,24 @@ const entryPointCommand: Partial<APIApplicationCommand> = {
   type: ApplicationCommandType.PrimaryEntryPoint,
   handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
 };
+
+// these commands will be registered only in the HOSTER_GUILD
+const hostGuildCommands: SharedSlashCommand[] = [
+  new SlashCommandBuilder()
+    .setName("updates")
+    .setDescription("Manage update logs")
+    .addSubcommand((sub) =>
+      sub.setName("new").setDescription("Add a new update to the log"),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("edit").setDescription("Edits an existing update log"),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("delete").setDescription("Deletes an existing update log"),
+    )
+    .setDefaultMemberPermissions(0),
+];
+
 async function configDiscordCommands() {
   const rest = new REST({ version: "10" }).setToken(
     process.env.DISCORD_BOT_TOKEN,
@@ -199,8 +234,29 @@ async function configDiscordCommands() {
       );
       console.log("[discord] created entry point command");
     }
+
+    if (process.env.HOSTER_GUILD) {
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.VITE_DISCORD_CLIENT_ID,
+          process.env.HOSTER_GUILD,
+        ),
+        { body: hostGuildCommands.map((command) => command.toJSON()) },
+      );
+      console.log("[discord] published host guild commands");
+    } else {
+      console.warn(
+        "[discord] there is no HOSTER_GUILD so guild commands will not be updated",
+      );
+    }
   } catch (err) {
-    console.log("[!] [discord] error updating commands:", err);
+    console.error("[!] [discord] error updating commands:", err);
+
+    if ((err as { code: number | string })?.code == 50001) {
+      console.warn(
+        "-> this looks like a Missing Access error. LARPARDY might be missing the application.commands scope in the hoster guild",
+      );
+    }
   }
 }
 await configDiscordCommands();
@@ -216,16 +272,8 @@ fastify.decorate("discord", new Client({ intents: [] }));
 fastify.discord.on(Events.ClientReady, async (client) => {
   console.log(`[discord] logged in as ${client.user.tag}`);
 });
-fastify.discord.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isPrimaryEntryPointCommand()) return;
-  console.log(
-    `activity launched by ${interaction.user.globalName} (@${interaction.user.username} / ${interaction.user.id} / interaction ID ${interaction.id})`,
-  );
 
-  if (interaction.command?.handler === EntryPointCommandHandlerType.AppHandler)
-    await interaction.launchActivity();
-  // await interaction.reply({ embeds: [{ type: EmbedType.Link }] });
-});
+/* Discord events have been moved to plugins/discord.ts */
 
 fastify.discord.login(process.env.DISCORD_BOT_TOKEN);
 

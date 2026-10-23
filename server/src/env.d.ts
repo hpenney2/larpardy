@@ -14,6 +14,8 @@ declare global {
       POSTGRES_PASSWORD: string;
       POSTGRES_HOST: string;
       HOSTER_ID: string;
+
+      HOSTER_GUILD: string | undefined;
     }
   }
 }

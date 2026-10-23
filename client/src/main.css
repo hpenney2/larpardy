@@ -99,6 +99,11 @@ body {
   border-color: var(--color-negative);
 }
 
+.button.secondary {
+  font-size: 1em;
+  border: none;
+}
+
 a:link {
   color: var(--color-primary);
 }

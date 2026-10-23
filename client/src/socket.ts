@@ -4,6 +4,7 @@ import { discordSdk, auth as discordAuth, setupPromise } from "./discord";
 import type { GameBoard, GameState } from "@larpardy/shared/state";
 import type { ClientToServerEvents, ServerToClientEvents } from "@larpardy/shared/socketTypes";
 import type { SearchBoardPartial } from "@larpardy/shared/userBoards";
+import type { UpdateLog } from "@larpardy/shared/types";
 
 await setupPromise; // wait until SDK is ready
 
@@ -35,6 +36,11 @@ export const editorState = reactive<{
   existingData?: SearchBoardPartial;
   existingBoard?: GameBoard;
 }>({});
+
+export const updateLogData = reactive<{ updates: UpdateLog[] | null; shouldShow: boolean }>({
+  updates: null,
+  shouldShow: false,
+});
 
 export const socket: LSocket = markRaw(
   io(undefined, {

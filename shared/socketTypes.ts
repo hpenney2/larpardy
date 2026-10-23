@@ -5,6 +5,7 @@ export interface ServerToClientEvents {
   stateUpdate: (state: GameState, callback: () => void) => void;
   showAlert: (text: string) => void;
   playSound: (sound: Sounds) => void;
+  shouldShowChangeLog: () => void;
 }
 
 export interface ClientToServerEvents {

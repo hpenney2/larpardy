@@ -7,6 +7,7 @@ import type {
   User,
   UserBoard,
 } from "@larpardy/shared/userBoards";
+import type { UpdateLog } from "@larpardy/shared/types";
 import type { FastifyInstance } from "fastify";
 import fastifyPlugin from "fastify-plugin";
 import { type PoolClient } from "pg";
@@ -61,16 +62,19 @@ class Database {
   }
 
   public async addUser(user: string, username: string) {
-    await this.pg.query(
+    const result = await this.pg.query(
       `
       INSERT INTO users (id, username)
       VALUES ($1, $2)
       ON CONFLICT (id) DO UPDATE SET
         username = EXCLUDED.username,
-        last_login = NOW();
+        last_login = NOW()
+      RETURNING OLD.last_login as prev_login, EXISTS (SELECT 1 FROM updates_log WHERE OLD.last_login IS NULL OR updated_at <= NOW() AND updated_at > OLD.last_login) as new_updates;
       `,
       [user, username],
     );
+
+    return result.rows[0] as { prev_login: Date | null; new_updates: boolean };
   }
 
   public async isUserRestricted(user: string) {
@@ -417,6 +421,75 @@ class Database {
       WHERE id = $1 AND deleted IS NULL AND ($2::TEXT IS NULL OR author = $2);
       `,
       [board, checkAuthor],
+    );
+    return result.rowCount != null && result.rowCount > 0;
+  }
+
+  public async createUpdateLog(title: string, body: string, time: Date) {
+    await this.pg.query(
+      `
+      INSERT INTO updates_log (title, content, updated_at)
+      VALUES ($1, $2, $3);
+      `,
+      [title, body, time],
+    );
+  }
+
+  public async getUpdateLogs(all: boolean = false) {
+    const result = await this.pg.query(
+      `
+      SELECT id, title, content, updated_at
+      FROM updates_log
+      WHERE $1 OR updated_at <= NOW()
+      ORDER BY updated_at DESC
+      LIMIT 50;
+      `,
+      [all],
+    );
+
+    return result.rows as UpdateLog[];
+  }
+
+  public async getUpdateLog(id: string) {
+    const result = await this.pg.query(
+      `
+      SELECT id, title, content, updated_at
+      FROM updates_log
+      WHERE id = $1;
+      `,
+      [id],
+    );
+
+    return result.rows[0] as UpdateLog | undefined;
+  }
+
+  public async editUpdateLog(
+    id: string,
+    title: string,
+    body: string,
+    time: Date,
+  ) {
+    const result = await this.pg.query(
+      `
+      UPDATE updates_log
+      SET
+        title = $1,
+        content = $2,
+        updated_at = $3
+      WHERE id = $4;
+      `,
+      [title, body, time, id],
+    );
+    return result.rowCount != null && result.rowCount > 0;
+  }
+
+  public async deleteUpdateLog(id: string) {
+    const result = await this.pg.query(
+      `
+      DELETE FROM updates_log
+      WHERE id = $1;
+      `,
+      [id],
     );
     return result.rowCount != null && result.rowCount > 0;
   }

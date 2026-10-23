@@ -16,6 +16,10 @@ import { Routes, type APIUser } from "discord-api-types/v10";
 import { REST } from "discord.js";
 import type { FastifyInstance } from "fastify";
 import z from "zod";
+import {
+  AuthorizationHeaderSchema,
+  type AuthorizationHeader,
+} from "../shared.js";
 
 async function getDiscordUser(token: string) {
   const rest = new REST({ version: "10", authPrefix: "Bearer" }).setToken(
@@ -26,9 +30,6 @@ async function getDiscordUser(token: string) {
 
   return user;
 }
-
-const AuthorizationHeaderSchema = z.object({ authorization: z.string() });
-type AuthorizationHeader = z.infer<typeof AuthorizationHeaderSchema>;
 
 export default async function routes(
   fastify: FastifyInstance,

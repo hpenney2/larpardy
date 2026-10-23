@@ -295,6 +295,11 @@ export default async function routes(
       console.log(socket.rooms);
       stateUpdated(state);
 
+      if (socket.data.new_updates) {
+        socket.emit("shouldShowChangeLog");
+        socket.data.new_updates = false;
+      }
+
       stats.write(
         Point.measurement("player")
           .setField("user", id)
