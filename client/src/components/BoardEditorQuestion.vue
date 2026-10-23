@@ -43,7 +43,7 @@ function done() {
           <p class="hint">
             This is usually worded as a question
             <br />
-            (e.g., "What are flamingos?")
+            (e.g., "[What are] flamingos?")
           </p>
         </div>
       </div>
