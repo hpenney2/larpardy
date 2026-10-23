@@ -84,7 +84,11 @@ function confirmLoad() {
     <div class="savePrompt">
       <h3>Save / Load</h3>
       <p>Board drafts saved here are stored locally only.</p>
+
       <p>If you want to upload a board, choose <strong>Finish</strong> instead.</p>
+      <p>
+        <strong class="danger">WARNING:</strong> Drafts might not be saved permanently on mobile.
+      </p>
       <div class="saveInputs">
         <select size="10" v-model="selected">
           <option value="new" style="font-weight: bold">&lt;&lt; NEW &gt;&gt;</option>
