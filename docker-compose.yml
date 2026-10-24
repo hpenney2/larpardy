@@ -6,7 +6,6 @@ services:
       - prod
     depends_on:
       - redis
-      - postgres
     build:
       context: .
       target: server
