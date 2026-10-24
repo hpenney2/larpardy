@@ -1,0 +1,6 @@
+%syntax-version=1.0.0
+%project=larpardy
+%uri=https://github.com/hpenney2/larpardy/
+
+init 2026-10-20T21:32:17Z purpld <me@purpld.dev> # Add initial tables (users, boards, favorites, and plays)
+updates_log 2026-10-22T16:28:22Z purpld <me@purpld.dev> # Adds table for the updates log.

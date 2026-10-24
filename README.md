@@ -38,7 +38,7 @@ If you want to play singleplayer, you can also use **Hostless Mode** to play sol
 > [!WARNING]
 > This is only needed if you are trying to run a local instance for development. If you just want to play the game, please [play the normal version above](#how-do-i-play).
 
-Docker is required.
+Docker and Sqitch are required.
 
 For local development, run
 
@@ -60,6 +60,17 @@ REDIS_PASS=SOMETHINGSUPERSECURE123
 # If running locally, keep this, or change it to where your server actually is.
 REDIS_URL=redis://localhost
 
+POSTGRES_USER=larpardy
+
+# You should probably change this
+POSTGRES_PASSWORD=SUPERSECURE123
+
+# If running locally, keep this, or change it to where your server actually is.
+POSTGRES_HOST=localhost
+
+# The Discord user ID of the server hoster. This user will always have admin permissions.
+HOSTER_ID=
+
 # If using it, configure InfluxDB for statistics tracking.
 # INFLUX_HOST=http://influxdb.example.com/
 # INFLUX_DATABASE=larpardy
@@ -68,10 +79,17 @@ REDIS_URL=redis://localhost
 
 You also need to add a `clue.db` SQLite database to the `server/` directory, which currently is based on [jepp](https://github.com/ecshreve/jepp)'s database format.
 
+The latest database schema must be deployed using
+
+```
+cd db
+sqitch deploy db:pg://<database URI>/larpardy
+```
+
 Start the services by running
 
 ```
-docker compose up -d
+docker compose --profile dev up -d
 ```
 
 then
@@ -90,19 +108,19 @@ docker compose --profile prod up --build -d
 
 ## Stack
 
-| Component              | Tech                       |
-| ---------------------- | -------------------------- |
-| Backend                | Node.js + Fastify          |
-| Frontend               | TypeScript + Vue.js + Vite |
-| Multiplayer networking | Socket.IO                  |
-| Database               | Redis (temp. state)        |
-| Containerization       | Docker                     |
+| Component              | Tech                             |
+| ---------------------- | -------------------------------- |
+| Backend                | Node.js + Fastify                |
+| Frontend               | TypeScript + Vue.js + Vite       |
+| Multiplayer networking | Socket.IO                        |
+| Database               | Redis (temp. state) + PostgreSQL |
+| Containerization       | Docker                           |
 
 This project introduced a lot of new tech to me! Vue was entirely new for me and was mostly because I did not want to use React again, and I've come to _really_ like Vue; it made managing components and many other things quite easy.
 
 Socket.IO also made it easier to write higher level netcode (although, still not _easy_...).
 
-Redis maintains state if I decide to scale horizontally, and if the server needs to restart (for example). Persistent data is planned and will likely use PostgreSQL.
+Redis maintains state if I decide to scale horizontally, and if the server needs to restart (for example). Persistent data is stored in PostgreSQL.
 
 ## Credits
 

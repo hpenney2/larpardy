@@ -1,5 +1,10 @@
 :root {
   --color-bg: #192a51;
+
+  --color-primary: #d5c6e0;
+  --color-accent: #aaa1c8;
+  --color-accent2: #f5e6e8;
+  --color-accent3: #4444aa;
 }
 
 body {
@@ -17,4 +22,24 @@ body {
 
 h1 {
   filter: drop-shadow(0 5px black);
+}
+
+li > ol {
+  list-style-type: lower-roman;
+}
+
+ol.alpha {
+  list-style-type: lower-alpha;
+}
+
+a:link {
+  color: var(--color-primary);
+}
+
+a:visited {
+  color: var(--color-accent3);
+}
+
+a:active {
+  color: red;
 }

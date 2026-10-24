@@ -33,6 +33,11 @@ function returnToLobby() {
     <h2>GAME OVER!</h2>
     <section class="leaderboard">
       <h2>Leaderboard</h2>
+      <p v-if="gameState.state?.customId">
+        <cite>{{ gameState.state.customTitle }}</cite>
+        <br />
+        by <cite>@{{ gameState.state.customAuthor }}</cite>
+      </p>
       <div class="playerList">
         <template v-for="(user, i) in sortedPlayers" :key="user.id">
           <PlayerCard

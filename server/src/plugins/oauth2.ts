@@ -1,5 +1,7 @@
 import type { FastifyInstance, RouteShorthandOptions } from "fastify";
 import { fetchAndRetry } from "@larpardy/shared/utils";
+import z from "zod";
+import type { FastifyZod } from "../shared.js";
 
 interface Body {
   code: string;
@@ -12,20 +14,12 @@ interface Reply {
   500: undefined;
 }
 
-export default async function routes(
-  fastify: FastifyInstance,
-  options: Object,
-) {
+export default async function routes(fastify: FastifyZod, options: Object) {
   fastify.post<{ Body: Body; Reply: Reply }>(
     "/api/token",
     {
       schema: {
-        body: {
-          type: "object",
-          properties: {
-            code: { type: "string" },
-          },
-        },
+        body: z.object({ code: z.string() }),
       },
     },
     async function (request, reply) {

@@ -10,6 +10,12 @@ declare global {
       INFLUX_HOST: string;
       INFLUX_DATABASE: string;
       INFLUX_TOKEN: string;
+      POSTGRES_USER: string;
+      POSTGRES_PASSWORD: string;
+      POSTGRES_HOST: string;
+      HOSTER_ID: string;
+
+      HOSTER_GUILD: string | undefined;
     }
   }
 }

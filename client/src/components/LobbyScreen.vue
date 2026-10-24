@@ -2,11 +2,15 @@
 import { DISCORD_INVITE, type DiscordUsers } from "@/shared";
 import DiscordAvatar from "./DiscordAvatar.vue";
 import TitleHeader from "./TitleHeader.vue";
-import { auth as discordAuth, discordSdk } from "@/discord.ts";
-import { socket, gameState } from "@/socket.ts";
+import { auth, auth as discordAuth, discordSdk } from "@/discord.ts";
+import { socket, gameState, updateLogData } from "@/socket.ts";
 import ToggleSwitch from "./ToggleSwitch.vue";
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref, useTemplateRef, watch, watchEffect } from "vue";
 import HoverTooltip from "./HoverTooltip.vue";
+import BoardSelectionMenu from "./BoardSelectionMenu.vue";
+import { Common as SDKCommon } from "@discord/embedded-app-sdk";
+import type { UserPartial } from "@larpardy/shared/userBoards";
+import ChangeLog from "./ChangeLog.vue";
 
 defineProps<{
   users?: DiscordUsers;
@@ -38,6 +42,74 @@ function sendSettings() {
 const isTransferringHost = ref(false);
 watchEffect(() => {
   if (!isHost.value) isTransferringHost.value = false;
+});
+
+const boardMenuOpen = ref(false);
+
+watchEffect(() => {
+  if (!boardMenuOpen.value) {
+    discordSdk.commands.setOrientationLockState({
+      lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+      picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+      grid_lock_state: SDKCommon.OrientationLockStateTypeObject.PORTRAIT,
+    });
+  }
+});
+
+discordSdk.commands.setOrientationLockState({
+  lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+  picture_in_picture_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+  grid_lock_state: SDKCommon.OrientationLockStateTypeObject.UNLOCKED,
+});
+
+// pull down user data
+async function pullUserData() {
+  const response = await fetch("/api/users/me", {
+    method: "GET",
+    headers: {
+      Authorization: auth.access_token,
+    },
+  });
+
+  if (response.ok) {
+    const data: UserPartial = await response.json();
+    gameState.isAdmin = data.admin;
+    gameState.isRestricted = data.restricted;
+  }
+}
+
+watch(
+  boardMenuOpen,
+  async () => {
+    await pullUserData();
+  },
+  { immediate: true },
+);
+
+// changelogs
+const changelog = useTemplateRef("changelog");
+
+async function pullChangelog() {
+  const response = await fetch("/api/changelog");
+
+  if (response.ok) {
+    const data = await response.json();
+    updateLogData.updates = data;
+  } else {
+    updateLogData.updates = [];
+  }
+}
+
+async function openChangelog() {
+  if (updateLogData.updates == null || updateLogData.updates.length === 0) await pullChangelog();
+
+  changelog.value?.open();
+}
+
+watchEffect(async () => {
+  if (updateLogData.shouldShow) {
+    await openChangelog();
+  }
 });
 </script>
 <template>
@@ -89,6 +161,7 @@ watchEffect(() => {
     </div>
     <div class="settings">
       <h3>Settings</h3>
+
       <ToggleSwitch
         v-model="gameState.state!.settings.isHostless"
         :disabled="!isHost"
@@ -97,6 +170,7 @@ watchEffect(() => {
           title="Allows the game host to play, but only one person can buzz in per question."
         ></HoverTooltip
       ></ToggleSwitch>
+
       <button
         class="button"
         @click="isTransferringHost = !isTransferringHost"
@@ -105,7 +179,31 @@ watchEffect(() => {
       >
         {{ isTransferringHost ? "Cancel Host Transfer" : "Transfer Host" }}
       </button>
+
+      <hr />
+
+      <div>
+        <!-- <p>Gamemode: Standard / Random</p> -->
+        <button class="button" @click="boardMenuOpen = !boardMenuOpen">Custom Boards</button>
+        <p v-if="gameState.state?.customId">
+          Selected:
+          <br />
+          <cite>{{ gameState.state.customTitle }}</cite>
+          <br />
+          by <cite>@{{ gameState.state.customAuthor }}</cite>
+        </p>
+        <button
+          class="button"
+          v-if="gameState.state?.customId && isHost"
+          @click="socket.emit('resetBoard')"
+        >
+          Reset
+        </button>
+        <BoardSelectionMenu v-model="boardMenuOpen"></BoardSelectionMenu>
+      </div>
+      <button type="button" class="button secondary" @click="openChangelog">Changelog</button>
     </div>
+
     <div class="discord">
       <span>Join our server!</span>
       <button type="button" @click="discordSdk.commands.openExternalLink({ url: DISCORD_INVITE })">
@@ -113,6 +211,8 @@ watchEffect(() => {
       </button>
     </div>
   </div>
+
+  <ChangeLog ref="changelog" />
 </template>
 <style scoped>
 .lobbyScreen {
@@ -122,6 +222,9 @@ watchEffect(() => {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+
+  padding-top: 1em;
+  padding-bottom: 2em;
 }
 
 .lobbyScreen * {
@@ -193,6 +296,11 @@ watchEffect(() => {
 
 #startButton {
   border: solid 4px var(--color-accent);
+}
+
+.settings * {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .settings > * + * {

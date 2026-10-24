@@ -32,6 +32,9 @@
   --color-accent: #aaa1c8;
   --color-accent2: #f5e6e8;
   --color-accent3: #4444aa;
+  --color-positive: #4bf048;
+  --color-negative: #ff4b4b;
+
   --user-speaking: rgb(61, 158, 96);
 
   --discord-blurple: #5865f2;
@@ -62,6 +65,10 @@ body {
   }
 }
 
+.danger {
+  color: var(--color-negative);
+}
+
 .button {
   background-color: #000000aa;
   color: white;
@@ -86,4 +93,25 @@ body {
 .button.highlighted {
   background-color: var(--color-accent3);
   /* border-width: 4px; */
+}
+
+.button.danger {
+  border-color: var(--color-negative);
+}
+
+.button.secondary {
+  font-size: 1em;
+  border: none;
+}
+
+a:link {
+  color: var(--color-primary);
+}
+
+a:visited {
+  color: var(--color-accent3);
+}
+
+a:active {
+  color: red;
 }

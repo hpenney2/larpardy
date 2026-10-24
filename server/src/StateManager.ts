@@ -12,6 +12,7 @@ import {
 import { Routes, type APIActivityInstance } from "discord-api-types/v10";
 import fastifyPlugin from "fastify-plugin";
 import type { ClueDatabase } from "./jep.js";
+import type { SearchBoard } from "@larpardy/shared/userBoards";
 
 // we could theoretically add a redis: Redis = this.redis parameter to CRUD methods, but generic types become a problem lol
 // type Redis = RedisCommander<ClientContext>;
@@ -230,6 +231,56 @@ export class StateManager {
     return this.jsonSet(gkey(instance, KeyTypes.SETTINGS), "$", settings);
   }
 
+  async setCustomBoard(instance: string, data: SearchBoard) {
+    return this.redis
+      .multi()
+      .hset(gkey(instance), "customId", data.id)
+      .hset(gkey(instance), "customTitle", data.title)
+      .hset(gkey(instance), "customAuthor", data.author)
+      .call(
+        "JSON.SET",
+        gkey(instance, KeyTypes.BOARD),
+        "$",
+        JSON.stringify(data.board),
+      )
+      .exec();
+  }
+
+  async generateStandardBoard(clueDb: ClueDatabase) {
+    const board: GameBoard = clueDb
+      .getRandomCategoriesAndClues(6, 5)
+      .map((category) => {
+        const newClues: BoardClue[] = [];
+        for (const [i, clue] of category.clues.entries()) {
+          newClues.push({
+            ...clue,
+            value: (i + 1) * 200,
+            revealed: false,
+            answered: false,
+          });
+        }
+
+        return { ...category, clues: newClues };
+      });
+
+    return board;
+  }
+
+  async resetBoard(instance: string, clueDb: ClueDatabase) {
+    await this.redis.hdel(
+      gkey(instance),
+      "customId",
+      "customTitle",
+      "customAuthor",
+    );
+
+    return this.jsonSet(
+      gkey(instance, KeyTypes.BOARD),
+      "$",
+      await this.generateStandardBoard(clueDb),
+    );
+  }
+
   async setClueRevealed(
     instance: string,
     categoryIndex: number,
@@ -441,21 +492,7 @@ export class StateManager {
     const boardKey = rkey(key, KeyTypes.BOARD);
     const settingsKey = rkey(key, KeyTypes.SETTINGS);
 
-    const board: GameBoard = clueDb
-      .getRandomCategoriesAndClues(6, 5)
-      .map((category) => {
-        const newClues: BoardClue[] = [];
-        for (const [i, clue] of category.clues.entries()) {
-          newClues.push({
-            ...clue,
-            value: (i + 1) * 200,
-            revealed: false,
-            answered: false,
-          });
-        }
-
-        return { ...category, clues: newClues };
-      });
+    const board = await this.generateStandardBoard(clueDb);
 
     const success = await this.redis
       .multi()

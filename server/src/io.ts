@@ -11,6 +11,7 @@ import type { APIUser } from "discord-api-types/v10";
 export interface SocketData {
   discord: APIUser;
   instanceId: string;
+  new_updates: boolean;
 }
 
 // Extend Fastify's TypeScript types

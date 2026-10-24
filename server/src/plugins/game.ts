@@ -3,6 +3,7 @@ import { Sounds } from "@larpardy/shared/sounds";
 import type { FastifyInstance } from "fastify";
 import { TimerType } from "../StateManager.js";
 import { Point } from "@influxdata/influxdb3-client";
+import z from "zod";
 
 // time to wait for state update ack in milliseconds
 const STATE_UPDATE_TIMEOUT = 5000;
@@ -305,6 +306,11 @@ export default async function routes(
       console.log(socket.rooms);
       stateUpdated(state);
 
+      if (socket.data.new_updates) {
+        socket.emit("shouldShowChangeLog");
+        socket.data.new_updates = false;
+      }
+
       stats.write(
         Point.measurement("player")
           .setField("user", id)
@@ -378,6 +384,8 @@ export default async function routes(
               .setUintegerField("players", state.players.length)
               .setBooleanField("hostless", state.settings.isHostless),
           );
+
+          if (state.customId) await fastify.db.recordPlay(state.customId, id);
         } catch (err) {
           console.warn(`error starting game for ${instance}:`, err);
         }
@@ -387,6 +395,31 @@ export default async function routes(
     socket.on("updateSettings", async (settings) => {
       if ((await fastify.state.getState(instance)).host === id) {
         await fastify.state.updateSettings(instance, settings);
+        await sendCurrentState();
+      }
+    });
+
+    socket.on("selectCustomBoard", async (board) => {
+      if (!z.uuid().safeParse(board).success) return;
+
+      const state = await fastify.state.getState(instance);
+      if (state.host === id && board && state.state == StateType.Lobby) {
+        const data = await fastify.db.getBoard(board, id);
+        if (data) {
+          await fastify.state.setCustomBoard(instance, data);
+          await sendCurrentState();
+        }
+      }
+    });
+
+    socket.on("resetBoard", async () => {
+      const state = await fastify.state.getState(instance);
+      if (
+        state.host === id &&
+        state.state == StateType.Lobby &&
+        state.customId
+      ) {
+        await fastify.state.resetBoard(instance, fastify.clueDb);
         await sendCurrentState();
       }
     });

@@ -8,9 +8,15 @@ import { socket } from "./socket.ts";
 import { Common } from "@discord/embedded-app-sdk";
 import { addIcons, OhVueIcon } from "oh-vue-icons";
 import {
+  BiArrowLeftRight,
   BiCheckLg,
   BiDiscord,
+  BiHeart,
+  BiHeartFill,
+  BiPlayFill,
   BiQuestionCircleFill,
+  BiSearch,
+  BiShieldFill,
   BiXLg,
   GiHamburgerMenu,
 } from "oh-vue-icons/icons";
@@ -32,7 +38,19 @@ async function main() {
 
   const app = createApp(App);
 
-  addIcons(BiQuestionCircleFill, BiCheckLg, BiXLg, BiDiscord, GiHamburgerMenu);
+  addIcons(
+    BiQuestionCircleFill,
+    BiCheckLg,
+    BiXLg,
+    BiDiscord,
+    GiHamburgerMenu,
+    BiSearch,
+    BiArrowLeftRight,
+    BiPlayFill,
+    BiHeart,
+    BiHeartFill,
+    BiShieldFill,
+  );
   app.component("v-icon", OhVueIcon);
 
   app.mount("#app");

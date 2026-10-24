@@ -6,6 +6,7 @@ import fastifyAutoload from "@fastify/autoload";
 import fastifySocketIO from "./io.js";
 import fastifyStatic from "@fastify/static";
 import fastifyRedis from "@fastify/redis";
+import fastifyPostgres from "@fastify/postgres";
 import statePlugin from "./StateManager.js";
 
 import { REST } from "@discordjs/rest";
@@ -19,13 +20,26 @@ import {
   type APIApplicationCommand,
   type APIUser,
 } from "discord-api-types/v10";
-import { Client, Events } from "discord.js";
+import {
+  Client,
+  Events,
+  SharedSlashCommand,
+  SlashCommandBuilder,
+} from "discord.js";
 import cluePlugin from "./jep.js";
 import statsPlugin from "./stats.js";
+import databasePlugin from "./Database.js";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from "@fastify/type-provider-zod";
 
 dotenv.config({ path: "../.env" });
 
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({ logger: true }).withTypeProvider<ZodTypeProvider>();
+fastify.setValidatorCompiler(validatorCompiler);
+fastify.setSerializerCompiler(serializerCompiler);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,6 +50,10 @@ const EXPECTED_ENV = [
   "DISCORD_BOT_TOKEN",
   "REDIS_URL",
   "REDIS_PASS",
+  "POSTGRES_USER",
+  "POSTGRES_PASSWORD",
+  "POSTGRES_HOST",
+  "HOSTER_ID",
 ];
 
 const OPTIONAL_ENV_INFLUX = ["INFLUX_HOST", "INFLUX_DATABASE", "INFLUX_TOKEN"];
@@ -70,6 +88,22 @@ if (!INFLUX_ENABLED) {
     influxToken: process.env.INFLUX_TOKEN,
   });
 }
+
+await fastify.register(fastifyPostgres, {
+  host: process.env.POSTGRES_HOST,
+  user: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  application_name: "LARPARDYServer",
+});
+
+try {
+  (await fastify.pg.connect()).release();
+} catch (err) {
+  console.error("[!] Failed to connect to PostgreSQL.", err);
+  process.exit(1);
+}
+
+await fastify.register(databasePlugin);
 
 await fastify.register(fastifyRedis, {
   url: process.env.REDIS_URL,
@@ -121,6 +155,13 @@ fastify.socketIO.use(async (socket, next) => {
     socket.data.discord = userInfo;
     socket.data.instanceId = instanceId;
 
+    const { new_updates } = await fastify.db.addUser(
+      userInfo.id,
+      userInfo.username,
+    );
+
+    socket.data.new_updates = new_updates;
+
     next();
   } catch (err) {
     console.log("connect error:", err);
@@ -144,6 +185,24 @@ const entryPointCommand: Partial<APIApplicationCommand> = {
   type: ApplicationCommandType.PrimaryEntryPoint,
   handler: EntryPointCommandHandlerType.DiscordLaunchActivity,
 };
+
+// these commands will be registered only in the HOSTER_GUILD
+const hostGuildCommands: SharedSlashCommand[] = [
+  new SlashCommandBuilder()
+    .setName("updates")
+    .setDescription("Manage update logs")
+    .addSubcommand((sub) =>
+      sub.setName("new").setDescription("Add a new update to the log"),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("edit").setDescription("Edits an existing update log"),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("delete").setDescription("Deletes an existing update log"),
+    )
+    .setDefaultMemberPermissions(0),
+];
+
 async function configDiscordCommands() {
   const rest = new REST({ version: "10" }).setToken(
     process.env.DISCORD_BOT_TOKEN,
@@ -175,8 +234,29 @@ async function configDiscordCommands() {
       );
       console.log("[discord] created entry point command");
     }
+
+    if (process.env.HOSTER_GUILD) {
+      await rest.put(
+        Routes.applicationGuildCommands(
+          process.env.VITE_DISCORD_CLIENT_ID,
+          process.env.HOSTER_GUILD,
+        ),
+        { body: hostGuildCommands.map((command) => command.toJSON()) },
+      );
+      console.log("[discord] published host guild commands");
+    } else {
+      console.warn(
+        "[discord] there is no HOSTER_GUILD so guild commands will not be updated",
+      );
+    }
   } catch (err) {
-    console.log("[!] [discord] error updating commands:", err);
+    console.error("[!] [discord] error updating commands:", err);
+
+    if ((err as { code: number | string })?.code == 50001) {
+      console.warn(
+        "-> this looks like a Missing Access error. LARPARDY might be missing the application.commands scope in the hoster guild",
+      );
+    }
   }
 }
 await configDiscordCommands();
@@ -192,16 +272,8 @@ fastify.decorate("discord", new Client({ intents: [] }));
 fastify.discord.on(Events.ClientReady, async (client) => {
   console.log(`[discord] logged in as ${client.user.tag}`);
 });
-fastify.discord.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isPrimaryEntryPointCommand()) return;
-  console.log(
-    `activity launched by ${interaction.user.globalName} (@${interaction.user.username} / ${interaction.user.id} / interaction ID ${interaction.id})`,
-  );
 
-  if (interaction.command?.handler === EntryPointCommandHandlerType.AppHandler)
-    await interaction.launchActivity();
-  // await interaction.reply({ embeds: [{ type: EmbedType.Link }] });
-});
+/* Discord events have been moved to plugins/discord.ts */
 
 fastify.discord.login(process.env.DISCORD_BOT_TOKEN);
 
@@ -218,6 +290,29 @@ fastify.register(fastifyAutoload, { dir: join(__dirname, "plugins") });
 fastify.state
   .dropStaleKeys()
   .then(() => console.log("finished checking for stale keys"));
+
+// https://fastify.dev/docs/latest/Reference/Errors/#errors-in-fastify
+fastify.setErrorHandler(function (error: any, request, reply) {
+  // Errors with a statusCode below 500 were raised deliberately by this
+  // application, as were validation errors. A status code below 500 is not on
+  // its own a guarantee that the message is safe to expose — narrow this
+  // condition if any of yours are not.
+
+  if (
+    error != null &&
+    (error?.validation || (error?.statusCode && error.statusCode < 500))
+  ) {
+    return reply.send(error);
+  }
+
+  // Anything else is unexpected: log it, but do not describe it to the client.
+  this.log.error({ err: error }, "unhandled error");
+  reply.status(500).send({
+    statusCode: 500,
+    error: "Internal Server Error",
+    message: "Internal Server Error",
+  });
+});
 
 fastify.listen({ port: 3001, host: "0.0.0.0" }, function (err, address) {
   if (err) {
