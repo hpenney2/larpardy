@@ -64,7 +64,12 @@ export default async function routes(
         return;
       }
 
-      const id = fastify.db.putBoard(request.body, discord.id);
+      const id = await fastify.db.putBoard(request.body, discord.id);
+
+      if (id === false) {
+        reply.code(429).send();
+        return;
+      }
 
       return id;
     },

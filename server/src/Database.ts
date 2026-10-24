@@ -16,6 +16,7 @@ import z from "zod";
 type Awaitable<T> = T | Promise<T>;
 
 const PAGE_SIZE = 20;
+const DAILY_BOARD_RATE_LIMIT = 15;
 
 const SearchPaginationCursorSchema = z.object({
   id: z.uuidv4(),
@@ -101,6 +102,22 @@ class Database {
         );
         return result.rows[0]?.id as string | undefined;
       } else {
+        const countToday = (
+          await client.query(
+            `
+          SELECT COUNT(*) as num
+          FROM boards
+          WHERE author = $1 AND created >= NOW() - INTERVAL '1 day';
+          `,
+            [author],
+          )
+        ).rows[0].num as number;
+
+        // reject requests past the daily rate limit for new boards
+        if (countToday >= DAILY_BOARD_RATE_LIMIT) {
+          return false;
+        }
+
         const result = await client.query(
           `
           INSERT INTO boards (author, title, privacy, board)

@@ -66,6 +66,8 @@ const errorText = computed(() => {
       return "Authentication failed. Try restarting LARPARDY?";
     case 403:
       return "Forbidden. Either you are banned (restricted) or are somehow trying to edit a board that you did not create.";
+    case 429:
+      return "You are being rate limited. You have created too many boards today. Please try again later!";
     case 500:
       return "Unexpected error. Please report this!";
     case 502:
