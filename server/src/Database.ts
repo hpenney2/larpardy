@@ -233,7 +233,7 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"}) 
+          WHERE (${queryIsID ? "(b.id = $1::UUID AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"}) 
                 AND b.deleted IS NULL 
                 AND (b.restricted IS NULL OR $5)
           GROUP BY b.id, users.id
@@ -255,7 +255,7 @@ class Database {
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"})
+          WHERE (${queryIsID ? "(b.id = $1::UUID AND (b.privacy <> 'private' OR (users.id = $2) OR $5))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $5)"})
                 AND b.deleted IS NULL 
                 AND (b.restricted IS NULL OR $5)
           GROUP BY b.id, users.id
@@ -277,7 +277,7 @@ class Database {
           INNER JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
+          WHERE (${queryIsID ? "(b.id = $1::UUID AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
                 AND fav.id = $2 
                 AND b.deleted IS NULL 
                 AND (b.restricted IS NULL OR $3)
@@ -310,7 +310,7 @@ class Database {
           LEFT JOIN favorite_boards AS fav ON b.id = fav.board
           LEFT JOIN board_plays AS plays ON b.id = plays.board
           LEFT JOIN users ON b.author = users.id
-          WHERE (${queryIsID ? "(b.id = $1 AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
+          WHERE (${queryIsID ? "(b.id = $1::UUID AND (b.privacy <> 'private' OR (users.id = $2) OR $3))" : "($1::TEXT IS NULL OR $1 = '' OR $1 <% title) AND (b.privacy = 'public' OR (users.id = $2) OR $3)"}) 
                 AND b.author = $2 
                 AND b.deleted IS NULL 
                 AND (b.restricted IS NULL OR $3)
