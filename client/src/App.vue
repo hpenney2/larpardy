@@ -6,7 +6,7 @@ import { ActivityType } from "discord-api-types/v10";
 import { StateType, StateFriendlyNames } from "@larpardy/shared/state";
 import WaitModal from "./components/WaitModal.vue";
 import LobbyScreen from "./components/LobbyScreen.vue";
-import { socket, gameState } from "@/socket.ts";
+import { socket, gameState, updateLogData } from "@/socket.ts";
 import GameBoard from "./components/GameBoard.vue";
 import AlertModal from "./components/AlertModal.vue";
 import { Sounds } from "@larpardy/shared/sounds";
@@ -95,6 +95,10 @@ socket.on("playSound", (sound) => {
   }
 
   audio.play();
+});
+
+socket.on("shouldShowChangeLog", () => {
+  updateLogData.shouldShow = true;
 });
 </script>
 
