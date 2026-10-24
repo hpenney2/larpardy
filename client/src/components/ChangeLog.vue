@@ -43,7 +43,7 @@ const processedUpdates = computed(() =>
           <article>
             <header>
               <h3>{{ update.title }}</h3>
-              <p>
+              <p style="text-align: right">
                 <span class="new" v-if="update.updated_at >= newThreshold">NEW!</span>
                 &nbsp;
                 <time :datetime="update.updated_at.toISOString()">{{
@@ -135,6 +135,10 @@ const processedUpdates = computed(() =>
 
 .change .new {
   padding: 0.75em;
+  /* margin-bottom: 0.5em; */
+  margin: 0.5em 0;
+  display: inline-block;
+
   font-weight: bold;
   background-color: rgb(from var(--color-accent3) r g b / 0.8);
 }
